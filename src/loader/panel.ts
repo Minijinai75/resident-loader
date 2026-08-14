@@ -12,6 +12,7 @@ export interface LoaderPanelModel {
   profiles: ConnectionProfileSummary[];
   histories: Record<GenerationFeature, HistoryRecord[]>;
   contextSummaries: Record<GenerationFeature, ConversationSummary>;
+  idleContextSummary?: ConversationSummary;
   view: 'settings' | GenerationFeature;
   hasBinding: boolean;
 }
@@ -135,6 +136,8 @@ function appearanceSection(settings: LoaderSettings): HTMLElement {
 function idlePromptSection(
   settings: LoaderSettings,
   pack: ImportedResidentPack | undefined,
+  profilesList: ConnectionProfileSummary[],
+  contextSummary: ConversationSummary,
 ): HTMLElement {
   const section = element('section', 'resident-loader-section');
   section.append(element('h3', '', '日常陪伴 Prompt'));
@@ -145,11 +148,58 @@ function idlePromptSection(
   const packPrompt = pack?.manifest.prompts.idle ?? '';
   prompt.value = settings.idlePromptOverride || packPrompt;
   prompt.placeholder = packPrompt || '先匯入並綁定角色包。';
+  const recent = element('input');
+  recent.type = 'number';
+  recent.min = '0';
+  recent.max = '50';
+  recent.inputMode = 'numeric';
+  recent.value = String(settings.idle.recentMessages);
+  recent.dataset.recent = 'idle';
+
+  const mode = element('select');
+  mode.dataset.mode = 'idle';
+  const current = element('option', '', '沿用目前酒館 API');
+  current.value = 'current';
+  const profileMode = element('option', '', '使用既有 Connection Profile');
+  profileMode.value = 'profile';
+  mode.append(current, profileMode);
+  mode.value = settings.idle.mode;
+
+  const profiles = element('select');
+  profiles.dataset.profile = 'idle';
+  const noProfile = element('option', '', profilesList.length ? '請選擇' : '酒館目前沒有可用 Profile');
+  noProfile.value = '';
+  profiles.append(noProfile);
+  for (const item of profilesList) {
+    const option = element('option', '', `${item.name}${item.model ? ` · ${item.model}` : ''}`);
+    option.value = item.id;
+    profiles.append(option);
+  }
+  profiles.value = settings.idle.profileId;
+
+  const controls = element('div', 'resident-loader-grid');
+  controls.append(
+    field('帶入最近幾樓（0＝不帶）', recent),
+    field('生成連線', mode),
+    field('指定連線設定檔案', profiles),
+  );
+  const contextBox = element('details', 'resident-loader-context');
+  const contextLabel = element('summary', '', `${contextSummary.messageCount} 樓 · 約 ${contextSummary.characterCount} 字（點開預覽）`);
+  contextLabel.dataset.contextLabel = 'idle';
+  const contextPreview = element('pre', '', contextSummary.preview || '日常陪伴目前不會帶入最近對話。');
+  contextPreview.dataset.contextPreview = 'idle';
+  contextBox.append(contextLabel, contextPreview);
   section.append(
     field('可見、可自行修改的日常 Prompt', prompt),
-    element('p', 'resident-loader-help', '日常內容會以目前綁定角色為基礎；這一版不會自行呼叫模型或新增聊天樓層。'),
-    button('恢復角色包預設 Prompt', 'reset-prompt:idle'),
+    element('p', 'resident-loader-help', '生成時會帶入目前角色卡的描述、性格與情境。只有按下按鈕才生成；自動生成目前關閉，也不會新增聊天樓層。'),
+    controls,
+    contextBox,
   );
+  const actions = element('div', 'resident-loader-actions');
+  const generate = button('讓桌寵說一句', 'generate:idle');
+  generate.disabled = !pack;
+  actions.append(button('恢復角色包預設 Prompt', 'reset-prompt:idle'), generate);
+  section.append(actions);
   return section;
 }
 
@@ -290,7 +340,12 @@ export function createLoaderPanel(model: LoaderPanelModel): HTMLElement {
     body.append(
       packSelector(model),
       appearanceSection(model.settings),
-      idlePromptSection(model.settings, selectedPack),
+      idlePromptSection(
+        model.settings,
+        selectedPack,
+        model.profiles,
+        model.idleContextSummary ?? { messageCount: 0, characterCount: 0, preview: '' },
+      ),
     );
   } else {
     body.append(featureSection(model.view, model, selectedPack));

@@ -10,12 +10,47 @@ function buildFeaturePrompt(input) {
     input.userName,
     input.characterName
   );
-  if (!summary.preview) return basePrompt;
+  const sections = [basePrompt];
+  const characterContext = input.characterContext?.trim().slice(0, 8e3);
+  if (characterContext) sections.push(`目前綁定角色卡資料：
+${characterContext}`);
+  if (!summary.preview) return sections.join("\n\n");
   const budgetedContext = summary.preview.length > 12e3 ? `…${summary.preview.slice(-12e3)}` : summary.preview;
-  return `${basePrompt}
-
-最近對話（由舊到新）：
-${budgetedContext}`;
+  sections.push(`最近對話（由舊到新）：
+${budgetedContext}`);
+  return sections.join("\n\n");
+}
+function isRecord$4(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function currentCharacter(context) {
+  if (isRecord$4(context.character)) return context.character;
+  const characters = context.characters;
+  const id = context.characterId ?? context.character_id;
+  if (Array.isArray(characters)) {
+    const candidate = characters[Number(id)];
+    return isRecord$4(candidate) ? candidate : void 0;
+  }
+  if (isRecord$4(characters) && (typeof id === "string" || typeof id === "number")) {
+    const candidate = characters[String(id)];
+    return isRecord$4(candidate) ? candidate : void 0;
+  }
+  return void 0;
+}
+function extractCharacterCardContext(context) {
+  if (!isRecord$4(context)) return "";
+  const character = currentCharacter(context);
+  if (!character) return "";
+  const data = isRecord$4(character.data) ? character.data : {};
+  const fields = [
+    ["角色描述", data.description ?? character.description],
+    ["性格", data.personality ?? character.personality],
+    ["情境", data.scenario ?? character.scenario]
+  ];
+  return fields.map(([label, value]) => {
+    const text = clippedText(value, 2500);
+    return text ? `${label}：${text}` : "";
+  }).filter(Boolean).join("\n").slice(0, 8e3);
 }
 function summarizeRecentConversation(chat, recentMessages, userName, characterName) {
   const count = Math.min(50, Math.max(0, Math.round(recentMessages)));
@@ -2628,7 +2663,7 @@ function appearanceSection(settings) {
   section.append(advanced, button("儲存外觀與速度", "save-settings"), button("重設桌寵位置", "reset-position"));
   return section;
 }
-function idlePromptSection(settings, pack) {
+function idlePromptSection(settings, pack, profilesList, contextSummary) {
   const section = element("section", "resident-loader-section");
   section.append(element("h3", "", "日常陪伴 Prompt"));
   const prompt = element("textarea");
@@ -2638,11 +2673,55 @@ function idlePromptSection(settings, pack) {
   const packPrompt = pack?.manifest.prompts.idle ?? "";
   prompt.value = settings.idlePromptOverride || packPrompt;
   prompt.placeholder = packPrompt || "先匯入並綁定角色包。";
+  const recent = element("input");
+  recent.type = "number";
+  recent.min = "0";
+  recent.max = "50";
+  recent.inputMode = "numeric";
+  recent.value = String(settings.idle.recentMessages);
+  recent.dataset.recent = "idle";
+  const mode = element("select");
+  mode.dataset.mode = "idle";
+  const current = element("option", "", "沿用目前酒館 API");
+  current.value = "current";
+  const profileMode = element("option", "", "使用既有 Connection Profile");
+  profileMode.value = "profile";
+  mode.append(current, profileMode);
+  mode.value = settings.idle.mode;
+  const profiles = element("select");
+  profiles.dataset.profile = "idle";
+  const noProfile = element("option", "", profilesList.length ? "請選擇" : "酒館目前沒有可用 Profile");
+  noProfile.value = "";
+  profiles.append(noProfile);
+  for (const item of profilesList) {
+    const option = element("option", "", `${item.name}${item.model ? ` · ${item.model}` : ""}`);
+    option.value = item.id;
+    profiles.append(option);
+  }
+  profiles.value = settings.idle.profileId;
+  const controls = element("div", "resident-loader-grid");
+  controls.append(
+    field("帶入最近幾樓（0＝不帶）", recent),
+    field("生成連線", mode),
+    field("指定連線設定檔案", profiles)
+  );
+  const contextBox = element("details", "resident-loader-context");
+  const contextLabel = element("summary", "", `${contextSummary.messageCount} 樓 · 約 ${contextSummary.characterCount} 字（點開預覽）`);
+  contextLabel.dataset.contextLabel = "idle";
+  const contextPreview = element("pre", "", contextSummary.preview || "日常陪伴目前不會帶入最近對話。");
+  contextPreview.dataset.contextPreview = "idle";
+  contextBox.append(contextLabel, contextPreview);
   section.append(
     field("可見、可自行修改的日常 Prompt", prompt),
-    element("p", "resident-loader-help", "日常內容會以目前綁定角色為基礎；這一版不會自行呼叫模型或新增聊天樓層。"),
-    button("恢復角色包預設 Prompt", "reset-prompt:idle")
+    element("p", "resident-loader-help", "生成時會帶入目前角色卡的描述、性格與情境。只有按下按鈕才生成；自動生成目前關閉，也不會新增聊天樓層。"),
+    controls,
+    contextBox
   );
+  const actions = element("div", "resident-loader-actions");
+  const generate = button("讓桌寵說一句", "generate:idle");
+  generate.disabled = !pack;
+  actions.append(button("恢復角色包預設 Prompt", "reset-prompt:idle"), generate);
+  section.append(actions);
   return section;
 }
 function featureSection(feature, model, pack) {
@@ -2760,7 +2839,12 @@ function createLoaderPanel(model) {
     body.append(
       packSelector(model),
       appearanceSection(model.settings),
-      idlePromptSection(model.settings, selectedPack)
+      idlePromptSection(
+        model.settings,
+        selectedPack,
+        model.profiles,
+        model.idleContextSummary ?? { messageCount: 0, characterCount: 0, preview: "" }
+      )
     );
   } else {
     body.append(featureSection(model.view, model, selectedPack));
@@ -2791,6 +2875,10 @@ function createPetQuickMenu(options) {
 }
 const DEFAULT_LOADER_SETTINGS = {
   idlePromptOverride: "",
+  idle: {
+    recentMessages: 4,
+    profileId: ""
+  },
   appearance: {
     desktopSizePercent: 100,
     mobileSizePercent: 82,
@@ -2833,6 +2921,14 @@ function featureSettings(value, fallback) {
     profileId: typeof input.profileId === "string" && input.profileId.length <= 200 ? input.profileId : fallback.profileId
   };
 }
+function idleSettings(value, fallback) {
+  const input = isRecord$2(value) ? value : {};
+  return {
+    recentMessages: Math.round(clamp(input.recentMessages, 0, 50, fallback.recentMessages)),
+    mode: input.mode === "profile" ? "profile" : "current",
+    profileId: typeof input.profileId === "string" && input.profileId.length <= 200 ? input.profileId : fallback.profileId
+  };
+}
 function coordinate(value) {
   if (value === null || value === void 0 || value === "") return null;
   const parsed = finiteNumber(value, Number.NaN);
@@ -2850,6 +2946,7 @@ function normalizeLoaderSettings(value) {
   const features = isRecord$2(input.features) ? input.features : {};
   return {
     idlePromptOverride: typeof input.idlePromptOverride === "string" ? input.idlePromptOverride.slice(0, 8e3) : DEFAULT_LOADER_SETTINGS.idlePromptOverride,
+    idle: idleSettings(input.idle, DEFAULT_LOADER_SETTINGS.idle),
     appearance: {
       desktopSizePercent: Math.round(
         clamp(
@@ -3105,6 +3202,8 @@ class SpriteResident {
   dragging = false;
   dragMoved = false;
   dragOffset = { x: 0, y: 0 };
+  speechBubble;
+  speechTimeout;
   destroy() {
     window.clearInterval(this.intervalId);
     window.removeEventListener("resize", this.handleResize);
@@ -3114,7 +3213,35 @@ class SpriteResident {
     this.node.removeEventListener("pointerup", this.handlePointerUp);
     this.node.removeEventListener("pointercancel", this.handlePointerUp);
     this.node.remove();
+    this.clearSpeech();
     URL.revokeObjectURL(this.imageUrl);
+  }
+  showSpeech(text) {
+    this.clearSpeech();
+    const bubble = document.createElement("div");
+    bubble.className = "resident-loader-speech-bubble";
+    bubble.setAttribute("role", "status");
+    const cleaned = text.trim();
+    bubble.textContent = cleaned.length > 500 ? `${cleaned.slice(0, 500)}…` : cleaned;
+    document.body.append(bubble);
+    this.speechBubble = bubble;
+    this.positionSpeech();
+    this.speechTimeout = window.setTimeout(() => this.clearSpeech(), 12e3);
+  }
+  clearSpeech() {
+    if (this.speechTimeout !== void 0) window.clearTimeout(this.speechTimeout);
+    this.speechTimeout = void 0;
+    this.speechBubble?.remove();
+    this.speechBubble = void 0;
+  }
+  positionSpeech() {
+    if (!this.speechBubble) return;
+    const point = this.point();
+    const size = this.size();
+    const bubbleWidth = Math.min(300, Math.max(180, window.innerWidth - 32));
+    this.speechBubble.style.width = `${bubbleWidth}px`;
+    this.speechBubble.style.left = `${Math.max(8, Math.min(window.innerWidth - bubbleWidth - 8, point.x + size - bubbleWidth))}px`;
+    this.speechBubble.style.top = `${Math.max(8, point.y - 96)}px`;
   }
   viewport() {
     return window.matchMedia("(max-width: 720px)").matches ? "mobile" : "desktop";
@@ -3140,6 +3267,7 @@ class SpriteResident {
     const safe = this.clamp(point);
     this.node.style.left = `${safe.x}px`;
     this.node.style.top = `${safe.y}px`;
+    this.positionSpeech();
   }
   applySizeAndPosition() {
     const size = this.size();
@@ -3441,6 +3569,12 @@ class ResidentLoaderApp {
         this.identity?.characterName ?? "角色"
       )
     };
+    const idleContextSummary = summarizeRecentConversation(
+      chat,
+      this.settings.idle.recentMessages,
+      this.identity?.userName ?? "USER",
+      this.identity?.characterName ?? "角色"
+    );
     const nextPanel = createLoaderPanel({
       identity: this.identity,
       packs,
@@ -3449,6 +3583,7 @@ class ResidentLoaderApp {
       profiles: extractConnectionProfiles(this.getContext()),
       histories,
       contextSummaries,
+      idleContextSummary,
       view,
       hasBinding: Boolean(binding)
     });
@@ -3588,6 +3723,8 @@ class ResidentLoaderApp {
       preset.addEventListener("click", () => this.applyMotionPreset(panel, preset.dataset.motionPreset));
     }
     panel.querySelector('[data-action="reset-prompt:idle"]')?.addEventListener("click", () => void this.resetPrompt("idle"));
+    panel.querySelector('[data-recent="idle"]')?.addEventListener("input", () => this.updateContextPreview(panel, "idle"));
+    panel.querySelector('[data-action="generate:idle"]')?.addEventListener("click", () => void this.generateIdle(panel));
     for (const feature of ["letters", "stories"]) {
       panel.querySelector(`[data-recent="${feature}"]`)?.addEventListener("input", () => this.updateContextPreview(panel, feature));
       panel.querySelector(`[data-action="reset-prompt:${feature}"]`)?.addEventListener("click", () => void this.resetPrompt(feature));
@@ -3667,6 +3804,11 @@ class ResidentLoaderApp {
     const idleDefault = this.activePack?.manifest.prompts.idle ?? "";
     return normalizeLoaderSettings({
       idlePromptOverride: idlePrompt.trim() === idleDefault.trim() ? "" : idlePrompt,
+      idle: idleControl ? {
+        recentMessages: Number(panel.querySelector('[data-recent="idle"]')?.value),
+        mode: panel.querySelector('[data-mode="idle"]')?.value === "profile" ? "profile" : "current",
+        profileId: panel.querySelector('[data-profile="idle"]')?.value ?? ""
+      } : this.settings.idle,
       appearance: {
         desktopSizePercent: numericValue(
           panel,
@@ -3722,6 +3864,35 @@ class ResidentLoaderApp {
     const preview = panel.querySelector(`[data-context-preview="${feature}"]`);
     if (label) label.textContent = `${summary.messageCount} 樓 · 約 ${summary.characterCount} 字（點開預覽）`;
     if (preview) preview.textContent = summary.preview || "這個功能目前不會帶入最近對話。";
+  }
+  async generateIdle(panel) {
+    if (!this.identity || !this.activePack) return;
+    this.setStatus("正在生成一句桌寵陪伴，不會新增聊天樓層…");
+    try {
+      await this.saveSettings(panel, false);
+      const context = this.getContext();
+      const chat = isRecord(context) && Array.isArray(context.chat) ? context.chat : [];
+      const prompt = buildFeaturePrompt({
+        packPrompt: this.activePack.manifest.prompts.idle,
+        promptOverride: this.settings.idlePromptOverride,
+        recentMessages: this.settings.idle.recentMessages,
+        chat,
+        userName: this.identity.userName,
+        characterName: this.identity.characterName,
+        characterContext: extractCharacterCardContext(context)
+      });
+      const result = await this.generation.generateText({
+        mode: this.settings.idle.mode,
+        profileId: this.settings.idle.profileId,
+        prompt,
+        maxChatHistory: this.settings.idle.recentMessages
+      });
+      if (!this.sprite) this.setPetVisible(true);
+      this.sprite?.showSpeech(result.text);
+      this.setStatus("桌寵已說完；這句話只顯示在桌寵泡泡。", "success");
+    } catch (error) {
+      this.setStatus(error instanceof Error ? error.message : "日常陪伴生成失敗。", "error");
+    }
   }
   async saveSettings(panel, rerender) {
     if (!this.identity) return this.setStatus("請先打開一個角色聊天。", "error");
@@ -3781,7 +3952,8 @@ class ResidentLoaderApp {
         recentMessages: featureSettings2.recentMessages,
         chat,
         userName: this.identity.userName,
-        characterName: this.identity.characterName
+        characterName: this.identity.characterName,
+        characterContext: extractCharacterCardContext(context)
       });
       const result = await this.generation.generateText({
         mode: featureSettings2.mode,

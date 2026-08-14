@@ -18,6 +18,9 @@
 | `npm test` after v0.2 implementation | PASS | 8 files / 35 tests; drawer entry, no launcher, separate reading views, unbind preservation, and prior behavior all green |
 | `npm run package` for v0.2.0 | PASS | Build succeeded; `resident-loader-v0.2.0.zip` SHA-256 `1b6c7ab2f770215617a7c70eeb155e382e02dca32c9ea98d25dc05b6b53ecdb5` |
 | `node --test tests/repository-layout.node.mjs` / `validate-extension.js` | PASS | Direct-install topology passed; 10 passed / 0 warnings / 0 failures; manifest display name is「酒館桌寵」 |
+| `npm test` after v0.2.1 daily-companion activation | PASS | 8 files / 38 tests; daily settings, safe character-card context, manual UI, and all prior behavior green |
+| `npm run package` for v0.2.1 | PASS | Build succeeded; `resident-loader-v0.2.1.zip` SHA-256 `b61a244f1f2a785fa8970fcada528ffaa115d9cbb790513904c8c7279a88b36e` |
+| Root topology, extension validator, and hybrid contract validators | PASS | Repository layout passed; extension validation 10/10 with 0 warnings/failures; both contract copies accepted |
 
 ## Pending
 

@@ -86,6 +86,9 @@ describe('createLoaderPanel', () => {
     expect(panel.querySelector<HTMLTextAreaElement>('[data-prompt="idle"]')?.value).toBe(
       '待機 Prompt',
     );
+    expect(panel.querySelector<HTMLInputElement>('[data-recent="idle"]')?.value).toBe('4');
+    expect(panel.querySelector('[data-action="generate:idle"]')?.textContent).toContain('讓桌寵說一句');
+    expect(panel.textContent).toContain('自動生成目前關閉');
     expect(panel.querySelectorAll('[data-motion-preset]')).toHaveLength(3);
     expect(panel.querySelector('[data-action="import-trigger"]')?.textContent).toContain('選擇並匯入角色包');
     expect(panel.querySelector<HTMLInputElement>('[data-action="import"]')?.hidden).toBe(true);

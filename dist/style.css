@@ -70,6 +70,23 @@
   cursor: pointer;
 }
 
+.resident-loader-speech-bubble {
+  position: fixed;
+  z-index: 29985;
+  max-height: min(180px, 35vh);
+  padding: 12px 14px;
+  overflow: auto;
+  color: var(--resident-ink);
+  background: rgba(255, 250, 252, 0.97);
+  border: 2px solid var(--resident-pink);
+  border-radius: 14px 14px 4px 14px;
+  box-shadow: 0 12px 32px rgba(42, 23, 37, 0.28);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: 650 14px/1.55 system-ui, sans-serif;
+  pointer-events: auto;
+}
+
 #resident-loader-pet {
   position: fixed;
   z-index: 29980;

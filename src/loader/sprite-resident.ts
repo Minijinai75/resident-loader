@@ -18,6 +18,8 @@ export class SpriteResident {
   private dragging = false;
   private dragMoved = false;
   private dragOffset: Point = { x: 0, y: 0 };
+  private speechBubble?: HTMLDivElement;
+  private speechTimeout?: number;
 
   constructor(
     private readonly options: {
@@ -61,7 +63,38 @@ export class SpriteResident {
     this.node.removeEventListener('pointerup', this.handlePointerUp);
     this.node.removeEventListener('pointercancel', this.handlePointerUp);
     this.node.remove();
+    this.clearSpeech();
     URL.revokeObjectURL(this.imageUrl);
+  }
+
+  showSpeech(text: string): void {
+    this.clearSpeech();
+    const bubble = document.createElement('div');
+    bubble.className = 'resident-loader-speech-bubble';
+    bubble.setAttribute('role', 'status');
+    const cleaned = text.trim();
+    bubble.textContent = cleaned.length > 500 ? `${cleaned.slice(0, 500)}…` : cleaned;
+    document.body.append(bubble);
+    this.speechBubble = bubble;
+    this.positionSpeech();
+    this.speechTimeout = window.setTimeout(() => this.clearSpeech(), 12_000);
+  }
+
+  private clearSpeech(): void {
+    if (this.speechTimeout !== undefined) window.clearTimeout(this.speechTimeout);
+    this.speechTimeout = undefined;
+    this.speechBubble?.remove();
+    this.speechBubble = undefined;
+  }
+
+  private positionSpeech(): void {
+    if (!this.speechBubble) return;
+    const point = this.point();
+    const size = this.size();
+    const bubbleWidth = Math.min(300, Math.max(180, window.innerWidth - 32));
+    this.speechBubble.style.width = `${bubbleWidth}px`;
+    this.speechBubble.style.left = `${Math.max(8, Math.min(window.innerWidth - bubbleWidth - 8, point.x + size - bubbleWidth))}px`;
+    this.speechBubble.style.top = `${Math.max(8, point.y - 96)}px`;
   }
 
   private viewport(): 'desktop' | 'mobile' {
@@ -95,6 +128,7 @@ export class SpriteResident {
     const safe = this.clamp(point);
     this.node.style.left = `${safe.x}px`;
     this.node.style.top = `${safe.y}px`;
+    this.positionSpeech();
   }
 
   private applySizeAndPosition(): void {

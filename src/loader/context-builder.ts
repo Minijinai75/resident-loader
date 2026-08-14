@@ -17,6 +17,7 @@ export function buildFeaturePrompt(input: {
   chat: TavernChatMessage[];
   userName: string;
   characterName: string;
+  characterContext?: string;
 }): string {
   const basePrompt = input.promptOverride.trim() || input.packPrompt.trim();
   const summary = summarizeRecentConversation(
@@ -25,10 +26,53 @@ export function buildFeaturePrompt(input: {
     input.userName,
     input.characterName,
   );
-  if (!summary.preview) return basePrompt;
+  const sections = [basePrompt];
+  const characterContext = input.characterContext?.trim().slice(0, 8_000);
+  if (characterContext) sections.push(`目前綁定角色卡資料：\n${characterContext}`);
+  if (!summary.preview) return sections.join('\n\n');
   const budgetedContext =
     summary.preview.length > 12_000 ? `…${summary.preview.slice(-12_000)}` : summary.preview;
-  return `${basePrompt}\n\n最近對話（由舊到新）：\n${budgetedContext}`;
+  sections.push(`最近對話（由舊到新）：\n${budgetedContext}`);
+  return sections.join('\n\n');
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function currentCharacter(context: Record<string, unknown>): Record<string, unknown> | undefined {
+  if (isRecord(context.character)) return context.character;
+  const characters = context.characters;
+  const id = context.characterId ?? context.character_id;
+  if (Array.isArray(characters)) {
+    const candidate = characters[Number(id)];
+    return isRecord(candidate) ? candidate : undefined;
+  }
+  if (isRecord(characters) && (typeof id === 'string' || typeof id === 'number')) {
+    const candidate = characters[String(id)];
+    return isRecord(candidate) ? candidate : undefined;
+  }
+  return undefined;
+}
+
+export function extractCharacterCardContext(context: unknown): string {
+  if (!isRecord(context)) return '';
+  const character = currentCharacter(context);
+  if (!character) return '';
+  const data = isRecord(character.data) ? character.data : {};
+  const fields: Array<[string, unknown]> = [
+    ['角色描述', data.description ?? character.description],
+    ['性格', data.personality ?? character.personality],
+    ['情境', data.scenario ?? character.scenario],
+  ];
+  return fields
+    .map(([label, value]) => {
+      const text = clippedText(value, 2_500);
+      return text ? `${label}：${text}` : '';
+    })
+    .filter(Boolean)
+    .join('\n')
+    .slice(0, 8_000);
 }
 
 export interface ConversationSummary {

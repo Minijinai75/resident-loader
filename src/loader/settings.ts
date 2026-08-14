@@ -8,8 +8,15 @@ export interface FeatureSettings {
   profileId: string;
 }
 
+export interface IdleSettings {
+  recentMessages: number;
+  mode: GenerationMode;
+  profileId: string;
+}
+
 export interface LoaderSettings {
   idlePromptOverride: string;
+  idle: IdleSettings;
   appearance: {
     desktopSizePercent: number;
     mobileSizePercent: number;
@@ -28,6 +35,11 @@ export interface LoaderSettings {
 
 export const DEFAULT_LOADER_SETTINGS: LoaderSettings = {
   idlePromptOverride: '',
+  idle: {
+    recentMessages: 4,
+    mode: 'current',
+    profileId: '',
+  },
   appearance: {
     desktopSizePercent: 100,
     mobileSizePercent: 82,
@@ -85,6 +97,18 @@ function featureSettings(value: unknown, fallback: FeatureSettings): FeatureSett
   };
 }
 
+function idleSettings(value: unknown, fallback: IdleSettings): IdleSettings {
+  const input = isRecord(value) ? value : {};
+  return {
+    recentMessages: Math.round(clamp(input.recentMessages, 0, 50, fallback.recentMessages)),
+    mode: input.mode === 'profile' ? 'profile' : 'current',
+    profileId:
+      typeof input.profileId === 'string' && input.profileId.length <= 200
+        ? input.profileId
+        : fallback.profileId,
+  };
+}
+
 function coordinate(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null;
   const parsed = finiteNumber(value, Number.NaN);
@@ -107,6 +131,7 @@ export function normalizeLoaderSettings(value: unknown): LoaderSettings {
       typeof input.idlePromptOverride === 'string'
         ? input.idlePromptOverride.slice(0, 8_000)
         : DEFAULT_LOADER_SETTINGS.idlePromptOverride,
+    idle: idleSettings(input.idle, DEFAULT_LOADER_SETTINGS.idle),
     appearance: {
       desktopSizePercent: Math.round(
         clamp(

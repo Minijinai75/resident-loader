@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildFeaturePrompt, summarizeRecentConversation } from '../src/loader/context-builder';
+import {
+  buildFeaturePrompt,
+  extractCharacterCardContext,
+  summarizeRecentConversation,
+} from '../src/loader/context-builder';
 import { extractConnectionProfiles } from '../src/loader/st-adapter';
 import { DEFAULT_LOADER_SETTINGS, normalizeLoaderSettings } from '../src/loader/settings';
 
@@ -24,6 +28,14 @@ describe('normalizeLoaderSettings', () => {
     expect(settings.position.desktop).toEqual({ x: 240, y: 300 });
     expect(settings.position.mobile).toEqual({ x: null, y: null });
     expect(settings.idlePromptOverride).toBe('USER 的日常陪伴 Prompt');
+    expect(settings.idle).toEqual(DEFAULT_LOADER_SETTINGS.idle);
+  });
+
+  it('normalizes manual daily-companion context and connection settings', () => {
+    const settings = normalizeLoaderSettings({
+      idle: { recentMessages: 5, mode: 'profile', profileId: 'daily' },
+    });
+    expect(settings.idle).toMatchObject({ recentMessages: 5, mode: 'profile', profileId: 'daily' });
   });
 
   it('uses visible per-feature prompt overrides and accepts zero recent floors', () => {
@@ -108,6 +120,40 @@ describe('buildFeaturePrompt', () => {
     expect(prompt).not.toContain('第一樓');
     expect(prompt.indexOf('第二樓')).toBeLessThan(prompt.indexOf('第三樓'));
     expect(prompt.indexOf('第三樓')).toBeLessThan(prompt.indexOf('第四樓'));
+  });
+
+  it('includes auditable character-card context before recent conversation', () => {
+    const prompt = buildFeaturePrompt({
+      packPrompt: '說一句陪伴。',
+      promptOverride: '',
+      recentMessages: 1,
+      chat,
+      userName: 'Mini',
+      characterName: '景和',
+      characterContext: '角色描述：沉著溫柔。',
+    });
+    expect(prompt).toContain('目前綁定角色卡資料');
+    expect(prompt).toContain('沉著溫柔');
+    expect(prompt.indexOf('角色卡資料')).toBeLessThan(prompt.indexOf('最近對話'));
+  });
+});
+
+describe('extractCharacterCardContext', () => {
+  it('reads only visible description, personality, and scenario fields from the current card', () => {
+    const text = extractCharacterCardContext({
+      characterId: 0,
+      characters: [{
+        name: '景和',
+        description: '沉著溫柔。',
+        personality: '細心。',
+        scenario: '深夜酒館。',
+        apiKey: 'SECRET',
+      }],
+    });
+    expect(text).toContain('沉著溫柔');
+    expect(text).toContain('細心');
+    expect(text).toContain('深夜酒館');
+    expect(text).not.toContain('SECRET');
   });
 });
 

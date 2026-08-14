@@ -19,4 +19,5 @@
 - Entry: no floating Launcher; the SillyTavern extensions drawer exposes settings plus explicit pet on/off actions.
 - Pet click: opens a two-button DOM-only menu for letter records and conversation-extra records.
 - Generation: browsing never calls a model; only the explicit create button generates, and results never become chat floors.
+- Daily companion: manual only in v0.2.1. It includes visible character-card description/personality/scenario plus the configured recent floors, then renders a temporary pet bubble. Automatic calls remain off.
 - Binding: unbinding removes only the character-to-pack relation and preserves packs, settings, and generated history.

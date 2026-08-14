@@ -1,5 +1,6 @@
 import {
   buildFeaturePrompt,
+  extractCharacterCardContext,
   summarizeRecentConversation,
   type TavernChatMessage,
 } from './context-builder';
@@ -139,6 +140,12 @@ export class ResidentLoaderApp {
         this.identity?.characterName ?? '角色',
       ),
     };
+    const idleContextSummary = summarizeRecentConversation(
+      chat,
+      this.settings.idle.recentMessages,
+      this.identity?.userName ?? 'USER',
+      this.identity?.characterName ?? '角色',
+    );
 
     const nextPanel = createLoaderPanel({
       identity: this.identity,
@@ -148,6 +155,7 @@ export class ResidentLoaderApp {
       profiles: extractConnectionProfiles(this.getContext()),
       histories,
       contextSummaries,
+      idleContextSummary,
       view,
       hasBinding: Boolean(binding),
     });
@@ -307,6 +315,12 @@ export class ResidentLoaderApp {
     panel
       .querySelector<HTMLButtonElement>('[data-action="reset-prompt:idle"]')
       ?.addEventListener('click', () => void this.resetPrompt('idle'));
+    panel
+      .querySelector<HTMLInputElement>('[data-recent="idle"]')
+      ?.addEventListener('input', () => this.updateContextPreview(panel, 'idle'));
+    panel
+      .querySelector<HTMLButtonElement>('[data-action="generate:idle"]')
+      ?.addEventListener('click', () => void this.generateIdle(panel));
     for (const feature of ['letters', 'stories'] as const) {
       panel
         .querySelector<HTMLInputElement>(`[data-recent="${feature}"]`)
@@ -397,6 +411,15 @@ export class ResidentLoaderApp {
     const idleDefault = this.activePack?.manifest.prompts.idle ?? '';
     return normalizeLoaderSettings({
       idlePromptOverride: idlePrompt.trim() === idleDefault.trim() ? '' : idlePrompt,
+      idle: idleControl
+        ? {
+            recentMessages: Number(panel.querySelector<HTMLInputElement>('[data-recent="idle"]')?.value),
+            mode: panel.querySelector<HTMLSelectElement>('[data-mode="idle"]')?.value === 'profile'
+              ? 'profile'
+              : 'current',
+            profileId: panel.querySelector<HTMLSelectElement>('[data-profile="idle"]')?.value ?? '',
+          }
+        : this.settings.idle,
       appearance: {
         desktopSizePercent: numericValue(
           panel,
@@ -441,7 +464,7 @@ export class ResidentLoaderApp {
     }
   }
 
-  private updateContextPreview(panel: HTMLElement, feature: GenerationFeature): void {
+  private updateContextPreview(panel: HTMLElement, feature: GenerationFeature | 'idle'): void {
     if (!this.identity) return;
     const context = this.getContext();
     const chat = isRecord(context) && Array.isArray(context.chat)
@@ -460,6 +483,38 @@ export class ResidentLoaderApp {
     const preview = panel.querySelector<HTMLElement>(`[data-context-preview="${feature}"]`);
     if (label) label.textContent = `${summary.messageCount} 樓 · 約 ${summary.characterCount} 字（點開預覽）`;
     if (preview) preview.textContent = summary.preview || '這個功能目前不會帶入最近對話。';
+  }
+
+  private async generateIdle(panel: HTMLElement): Promise<void> {
+    if (!this.identity || !this.activePack) return;
+    this.setStatus('正在生成一句桌寵陪伴，不會新增聊天樓層…');
+    try {
+      await this.saveSettings(panel, false);
+      const context = this.getContext();
+      const chat = isRecord(context) && Array.isArray(context.chat)
+        ? (context.chat as TavernChatMessage[])
+        : [];
+      const prompt = buildFeaturePrompt({
+        packPrompt: this.activePack.manifest.prompts.idle,
+        promptOverride: this.settings.idlePromptOverride,
+        recentMessages: this.settings.idle.recentMessages,
+        chat,
+        userName: this.identity.userName,
+        characterName: this.identity.characterName,
+        characterContext: extractCharacterCardContext(context),
+      });
+      const result = await this.generation.generateText({
+        mode: this.settings.idle.mode,
+        profileId: this.settings.idle.profileId,
+        prompt,
+        maxChatHistory: this.settings.idle.recentMessages,
+      });
+      if (!this.sprite) this.setPetVisible(true);
+      this.sprite?.showSpeech(result.text);
+      this.setStatus('桌寵已說完；這句話只顯示在桌寵泡泡。', 'success');
+    } catch (error) {
+      this.setStatus(error instanceof Error ? error.message : '日常陪伴生成失敗。', 'error');
+    }
   }
 
   private async saveSettings(panel: HTMLElement, rerender: boolean): Promise<void> {
@@ -528,6 +583,7 @@ export class ResidentLoaderApp {
         chat,
         userName: this.identity.userName,
         characterName: this.identity.characterName,
+        characterContext: extractCharacterCardContext(context),
       });
       const result = await this.generation.generateText({
         mode: featureSettings.mode,
