@@ -1,6 +1,6 @@
 # Resident Loader 參考技術蒸餾契約
 
-> 狀態：v0.3.0 精簡折疊入口、獨立設定頁、日記／留言板閱讀頁與 TXT 匯出已實作並通過本機驗證；待公開發布與酒館內真人 smoke
+> 狀態：v0.3.1 精簡折疊入口、獨立設定頁、日期軸信紙／彩色留言板閱讀頁與 TXT 匯出已實作並通過本機驗證；待公開發布與酒館內真人 smoke
 > 路由：hybrid
 > 更新時間：26-08-14 22:51（Asia/Taipei）
 > 目標：把景和 Resident 現有可驗證行為蒸餾成一個只安裝一次、可匯入多個資料包的 SillyTavern 共用 Loader。
@@ -201,6 +201,7 @@ onDisable → 移除 event listener、panel、pet、timer、Blob URL；不刪使
 | 手機 UI | 390px 匯入、綁定、改 textarea/slider | 單欄、16px input、48px action、安全區可用 | browser QA | screenshot＋computed style |
 | 擴充欄入口 | APP_READY、`#extensions_settings2` 存在 | 顯示【酒館桌寵】與設定／開／關；無浮動 Launcher | jsdom＋ST 人工 | DOM assertions |
 | 桌寵快捷閱讀 | 點桌寵後依次開來信／番外 | 只開兩鍵選單與指定閱讀頁；GENERATE 0、SEND 0 | jsdom＋provider spy | call counts＋DOM assertions |
+| 閱讀頁視覺 | 來信與番外各累積多筆、切到 390px | 來信按月份顯示日期欄＋信紙；番外按順序輪替四色留言卡；正文與操作不溢出 | jsdom＋browser QA | structure assertions＋screenshot＋computed geometry |
 | 解除綁定 | 已綁定角色按解除並確認 | sprite 卸載；pack、設定與歷史仍在 | repository unit＋ST 人工 | binding/history assertions |
 | 逐格安全邊界 | 上傳內容碰到格邊的 8×12 PNG | 問題格標示；可拖移縮放並重組精確 1024×1536 PNG | unit＋browser QA | alpha scan＋canvas dimensions |
 | PNG 預覽替換 | 選擇合法或不合法 PNG | 粉色小惡魔立即隱藏；合法圖顯示本人素材，錯誤顯示中性狀態 | jsdom＋browser QA | visibility assertions |
@@ -217,3 +218,5 @@ onDisable → 移除 event listener、panel、pet、timer、Blob URL；不刪使
 - [x] validator PASS（26-08-14 18:31，hybrid route）
 - [x] 手機 browser QA PASS（26-08-14 23:00，Chrome 390×844）：設定頁／來信日記皆為 374px 滿版安全寬度、文件無水平溢出、單欄欄位、按鈕最小高度 48px。
 - [x] v0.3.0 可重現封裝兩次同雜湊（26-08-14 23:01）：`ea8a78c877d6ca8ec35ccebc91ee1a0e3bdba67eaaa6eb009b44e8f90b750149`。
+- [x] v0.3.1 閱讀頁 browser QA PASS（26-08-14 23:45，Chrome 1100×850 與 390×844）：日期軸信紙與四色留言卡無水平溢出；手機面板 374px、左右 8px、按鈕最小高度 48px。
+- [x] v0.3.1 可重現封裝兩次同雜湊（26-08-14 23:46）：`e1c6a804df98e6ed1d043067595d92ebb7fecff3af3d182a6c3304ec3cce4df3`。

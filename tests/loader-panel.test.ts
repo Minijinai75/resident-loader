@@ -186,6 +186,12 @@ describe('createLoaderPanel', () => {
     expect(letters.textContent).toContain('今天也記得好好吃飯。');
     expect(letters.textContent).not.toContain('指定連線設定檔案');
     expect(letters.textContent).not.toContain('current');
+    expect(letters.querySelector('.resident-loader-diary-month')?.textContent).toBe('08 / 2026');
+    expect(letters.querySelector('.resident-loader-date-rail .resident-loader-date-day')?.textContent).toBe('14');
+    expect(letters.querySelector('.resident-loader-date-rail time')?.getAttribute('datetime')).toBeTruthy();
+    expect(letters.querySelector('.resident-loader-date-rail svg[aria-hidden="true"]')).not.toBeNull();
+    expect(letters.querySelector('.resident-loader-letter-sheet .resident-loader-record-content')?.textContent)
+      .toBe('今天也記得好好吃飯。');
 
     const stories = createLoaderPanel({ ...base, view: 'stories' });
     expect(stories.querySelector('#resident-loader-title')?.textContent).toBe('對話番外留言板');
@@ -195,5 +201,11 @@ describe('createLoaderPanel', () => {
     expect(stories.querySelector('[data-action^="generate:"]')).toBeNull();
     expect(stories.querySelector('[data-action="download-history"][data-feature="stories"]')).not.toBeNull();
     expect(stories.textContent).toContain('番外只有生成後的正文。');
+    expect(stories.querySelector('.resident-loader-board-intro')?.textContent).toContain('1 則收藏');
+    expect(stories.querySelector('.resident-loader-board-post-number')?.textContent).toBe('01');
+    expect(stories.querySelector('.resident-loader-board-post')?.classList.contains('resident-loader-board-post-tone-1'))
+      .toBe(true);
+    expect(stories.querySelector('.resident-loader-board-note .resident-loader-record-content')?.textContent)
+      .toBe('番外只有生成後的正文。');
   });
 });

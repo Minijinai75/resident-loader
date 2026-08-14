@@ -71,3 +71,12 @@
 - Published: commit `f4d113d`; GitHub Actions run `31812640285` passed. The refreshed v0.3.0 public ZIP is 57,784 bytes and matches SHA-256 `ea8a78c877d6ca8ec35ccebc91ee1a0e3bdba67eaaa6eb009b44e8f90b750149`.
 - Workshop check: the live site links v0.3.0, exposes the row-level size/vertical sync button, and keeps its mobile viewport setup.
 - Remaining: Mini updates/reloads【酒館桌寵】inside real SillyTavern for the runtime smoke.
+
+## 2026-08-14 23:45
+
+- Objective: Redesign the letter page from Mini's clean mobile diary reference and give the conversation-extra board a coordinated, cute-but-muted visual system.
+- Design system: Used a flat, personal reading flow with high-contrast text, no external assets, deterministic accents, visible focus, and mobile touch targets.
+- RED/GREEN: The panel test first failed for missing month/date rail, letter sheet, board count, post number, and color-tone structure; the focused suite passed after implementation.
+- Implementation: Letters now group records by month and place each date beside its paper. Stories now use numbered cards rotating through pink, lavender, mint, and mist-blue accents while keeping generated content, copy, delete, and TXT behavior unchanged.
+- Verification: 10 files / 44 tests passed; production build passed. Real Chrome at 1100×850 showed 680px/720px reading columns with no horizontal overflow. At 390×844 both pages stayed inside a 374px panel with 8px safe margins, 390px document width, and 48px minimum buttons. The v0.3.1 package reproduced twice at SHA-256 `e1c6a804df98e6ed1d043067595d92ebb7fecff3af3d182a6c3304ec3cce4df3`.
+- Next: Package, commit/push, publish v0.3.1, and verify the public manifest and ZIP.

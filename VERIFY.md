@@ -42,7 +42,14 @@
 | GitHub Actions run `31812640285` | PASS | Independent install, tests, build, committed-dist drift check, and package completed for `f4d113d` |
 | Refreshed public v0.3.0 ZIP | PASS | HTTP download returned 57,784 bytes and SHA-256 `ea8a78c877d6ca8ec35ccebc91ee1a0e3bdba67eaaa6eb009b44e8f90b750149` |
 | Live workshop after Pages run `31811981730` | PASS | v0.3.0 Loader link, row-level size/vertical sync control, and mobile viewport are present |
+| Letter/story visual structure TDD | PASS | RED confirmed missing date-rail/letter-sheet and numbered pastel-card structures; focused panel suite then passed 3/3 |
+| `npm test` after v0.3.1 reading-page redesign | PASS | 10 files / 44 tests |
+| `npm run build` after v0.3.1 reading-page redesign | PASS | TypeScript and Vite production build completed; committed dist regenerated |
+| Chrome desktop visual QA at 1100×850 | PASS | Letter feed stayed 680px wide; story feed stayed 720px wide; both panels fit without horizontal overflow |
+| Chrome mobile visual QA at 390×844 | PASS | Both pages fit a 374px panel with 8px margins, 390px document width, and 48px minimum buttons; letter columns were 58px + 286px and story notes were 304px wide |
+| `npm run package` twice for v0.3.1 | PASS | Both runs produced SHA-256 `e1c6a804df98e6ed1d043067595d92ebb7fecff3af3d182a6c3304ec3cce4df3` |
 
 ## Pending
 
-- Real headed SillyTavern v0.3.0 update/generation/TXT/reload smoke.
+- v0.3.1 package/release/public verification.
+- Real headed SillyTavern v0.3.1 update/generation/TXT/reload smoke.

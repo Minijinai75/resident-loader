@@ -6,7 +6,7 @@
   "js": "dist/index.js",
   "css": "dist/style.css",
   "author": "Mini & 景和",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "homePage": "https://github.com/Minijinai75/resident-loader",
   "auto_update": true,
   "hooks": {

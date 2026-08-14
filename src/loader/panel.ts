@@ -37,6 +37,23 @@ function button(label: string, action: string): HTMLButtonElement {
   return node;
 }
 
+function letterIcon(): SVGSVGElement {
+  const namespace = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(namespace, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  const path = document.createElementNS(namespace, 'path');
+  path.setAttribute('d', 'M4.5 6.75h15v10.5h-15zM5 7.25l7 5 7-5');
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', 'currentColor');
+  path.setAttribute('stroke-width', '1.7');
+  path.setAttribute('stroke-linecap', 'round');
+  path.setAttribute('stroke-linejoin', 'round');
+  svg.append(path);
+  return svg;
+}
+
 function field(label: string, control: HTMLElement): HTMLLabelElement {
   const wrapper = element('label', 'resident-loader-field');
   wrapper.append(element('span', '', label), control);
@@ -359,6 +376,14 @@ function historyView(feature: GenerationFeature, model: LoaderPanelModel): HTMLE
   );
   section.dataset.historyView = feature;
   const records = model.histories[feature];
+  if (!isLetters) {
+    const characterName = model.identity?.characterName ?? '目前角色';
+    section.append(element(
+      'p',
+      'resident-loader-board-intro',
+      `${characterName}的番外收藏 · ${records.length} 則收藏`,
+    ));
+  }
   if (records.length === 0) {
     section.append(element(
       'p',
@@ -366,14 +391,27 @@ function historyView(feature: GenerationFeature, model: LoaderPanelModel): HTMLE
       isLetters ? '這段聊天目前還沒有收到來信。' : '這段聊天目前還沒有生成番外。',
     ));
   }
-  for (const record of records) {
+  let currentMonth = '';
+  for (const [index, record] of records.entries()) {
+    const date = new Date(record.createdAt);
+    const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+    if (isLetters && monthKey !== currentMonth) {
+      currentMonth = monthKey;
+      section.append(element(
+        'h3',
+        'resident-loader-diary-month',
+        `${String(date.getMonth() + 1).padStart(2, '0')} / ${date.getFullYear()}`,
+      ));
+    }
     const article = element(
       'article',
-      `resident-loader-record ${isLetters ? 'resident-loader-diary-entry' : 'resident-loader-board-post'}`,
+      `resident-loader-record ${isLetters
+        ? 'resident-loader-diary-entry'
+        : `resident-loader-board-post resident-loader-board-post-tone-${(index % 4) + 1}`}`,
     );
     article.dataset.historyId = String(record.id);
-    const time = new Date(record.createdAt).toLocaleString('zh-TW');
-    article.append(element('time', 'resident-loader-record-meta', time));
+    const dateTime = date.toISOString();
+    const formattedTime = date.toLocaleString('zh-TW');
     const content = element('div', 'resident-loader-record-content', record.content);
     const recordActions = element('div', 'resident-loader-actions');
     const copy = button('複製', 'copy-history');
@@ -381,7 +419,36 @@ function historyView(feature: GenerationFeature, model: LoaderPanelModel): HTMLE
     const remove = button('刪除', 'delete-history');
     remove.dataset.historyId = String(record.id);
     recordActions.append(copy, remove);
-    article.append(content, recordActions);
+
+    if (isLetters) {
+      const rail = element('div', 'resident-loader-date-rail');
+      const time = element('time');
+      time.dateTime = dateTime;
+      time.setAttribute('aria-label', formattedTime);
+      time.append(
+        element('span', 'resident-loader-date-day', String(date.getDate()).padStart(2, '0')),
+        element('span', 'resident-loader-date-weekday', new Intl.DateTimeFormat('zh-TW', { weekday: 'short' }).format(date)),
+      );
+      const icon = element('span', 'resident-loader-date-icon');
+      icon.append(letterIcon());
+      rail.append(time, icon);
+
+      const sheet = element('div', 'resident-loader-letter-sheet');
+      sheet.append(
+        element('p', 'resident-loader-letter-kicker', `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')} · LETTER`),
+        content,
+        recordActions,
+      );
+      article.append(rail, sheet);
+    } else {
+      const number = element('span', 'resident-loader-board-post-number', String(index + 1).padStart(2, '0'));
+      number.setAttribute('aria-hidden', 'true');
+      const note = element('div', 'resident-loader-board-note');
+      const time = element('time', 'resident-loader-record-meta', formattedTime);
+      time.dateTime = dateTime;
+      note.append(time, content, recordActions);
+      article.append(number, note);
+    }
     section.append(article);
   }
   return section;
