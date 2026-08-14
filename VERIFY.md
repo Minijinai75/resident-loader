@@ -27,6 +27,8 @@
 | `npm test` after v0.2.2 drawer repair | PASS | 8 files / 40 tests |
 | `npm run package` for v0.2.2 | PASS | Build succeeded; `resident-loader-v0.2.2.zip` SHA-256 `13b80388c830a4d1e488686dd4c26ea09aad2c790e85594f1fedc2481a6dbfc0` |
 | Root topology and extension validator for v0.2.2 | PASS | Direct-install layout passed; 10 passed / 0 warnings / 0 failures |
+| GitHub Actions run `31808691495` | PASS | Independent v0.2.2 CI completed for commit `e443091` |
+| Public manifest, dist, and v0.2.2 ZIP | PASS | v0.2.2; native drawer/inline mount present; obsolete action absent; ZIP HTTP 200, 54,561 bytes, matching SHA-256 |
 
 ## Pending
 

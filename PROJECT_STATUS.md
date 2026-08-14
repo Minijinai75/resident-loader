@@ -4,9 +4,9 @@
 
 - Project: Resident Loader
 - Active task: Fix the unresponsive settings action and adopt SillyTavern's native collapsible drawer
-- Current phase: v0.2.2 implementation and RED/GREEN interaction tests complete; final package verification pending
-- Overall status: in progress
-- Last updated: 2026-08-14 22:08 Asia/Taipei
+- Current phase: v0.2.2 published and publicly verified
+- Overall status: complete; waiting for Mini's in-Tavern update smoke
+- Last updated: 2026-08-14 22:18 Asia/Taipei
 
 ## Current Goal
 
@@ -22,7 +22,7 @@ Users install one【酒館桌寵】extension, manage it from the extensions draw
 
 ## Current Blockers
 
-- No release blocker. A real headed SillyTavern installation smoke remains.
+- No release blocker. Mini's real SillyTavern update smoke remains.
 
 ## Next Step
 

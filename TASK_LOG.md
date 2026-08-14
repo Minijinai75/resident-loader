@@ -38,4 +38,6 @@
 - Root cause: the entry was a custom static card and launched a detached asynchronous body modal with no loading or failure feedback; it did not participate in the drawer's visible content flow.
 - Fix: v0.2.2 removes the redundant settings button; expanding the native drawer automatically mounts settings inside it, shows immediate loading/failure text, and keeps letter/story readers as body overlays.
 - Verification: focused drawer/settings-click tests passed; full suite passed (8 files / 40 tests); package, direct-install topology, and extension validation 10/10 passed. ZIP SHA-256: `13b80388c830a4d1e488686dd4c26ea09aad2c790e85594f1fedc2481a6dbfc0`.
-- Next: commit/push, release/public verification, then Mini updates once more.
+- Published: implementation commit `e443091`; GitHub Actions run `31808691495` passed. Public manifest reports `酒館桌寵` v0.2.2; release ZIP returned HTTP 200, 54,561 bytes, and SHA-256 `13b80388c830a4d1e488686dd4c26ea09aad2c790e85594f1fedc2481a6dbfc0`.
+- Public dist check: native drawer event and inline-panel mount are present; the obsolete `open-settings` action is absent.
+- Remaining: Mini updates/reloads SillyTavern and expands【酒館桌寵】for the real runtime smoke.
