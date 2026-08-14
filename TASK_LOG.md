@@ -8,3 +8,5 @@
 - Implementation: Added root manifest v0.1.1, direct-install README, independent TypeScript/Vite build, deterministic ZIP packaging, GitHub CI, and committed-dist contract.
 - Verification so far: Loader build passed; direct-install topology test passed; 6 files / 30 behavior tests passed.
 - Next: package, validate, commit/push, release v0.1.1, update the website, and perform public checks.
+- Published: commit `94ef5ef`, CI run `31799793600` passed, and v0.1.1 release ZIP returned HTTP 200 with 50,600 bytes and the expected SHA-256.
+- Remaining: real headed SillyTavern install/generation/reload smoke only.

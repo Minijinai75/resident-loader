@@ -4,9 +4,9 @@
 
 - Project: Resident Loader
 - Active task: Publish a repository-root SillyTavern extension install
-- Current phase: Local split verified; publishing next
+- Current phase: v0.1.1 public repository and release verified
 - Overall status: in progress
-- Last updated: 2026-08-14 20:16 Asia/Taipei
+- Last updated: 2026-08-14 20:22 Asia/Taipei
 
 ## Current Goal
 
@@ -22,8 +22,8 @@ Users paste `https://github.com/Minijinai75/resident-loader` into SillyTavern's 
 
 ## Current Blockers
 
-- None in code. GitHub CI/public release checks and a real headed SillyTavern installation smoke remain after publishing.
+- None in code or publishing. A real headed SillyTavern installation smoke remains.
 
 ## Next Step
 
-Commit and push v0.1.1, publish its offline ZIP release, then verify installation from the public repository URL.
+Install `https://github.com/Minijinai75/resident-loader` in a real SillyTavern, then exercise import, binding, current/profile generation, drag persistence, panel reopen, and history reload.

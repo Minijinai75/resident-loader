@@ -12,8 +12,9 @@
 | `npm run package` twice | PASS | Both runs produced SHA-256 `bdb512c679f356e3b3b528ff49dc1fe470e399f656918c5abf4e0458c237bfd5` |
 | ZIP content listing | PASS | Exactly `manifest.json`, `README.md`, `dist/index.js`, and `dist/style.css` |
 | `validate-extension.js` | PASS | 10 passed / 0 warnings / 0 failures; root topology and auto-update accepted |
+| GitHub Actions run `31799793600` | PASS | Independent CI install, tests, build, committed-dist drift check, and package completed |
+| Public raw manifest and v0.1.1 release requests | PASS | Both HTTP 200; ZIP 50,600 bytes; SHA-256 matched `bdb512c679f356e3b3b528ff49dc1fe470e399f656918c5abf4e0458c237bfd5` |
 
 ## Pending
 
-- GitHub Actions and public release download.
 - Real headed SillyTavern install/generation/reload smoke.
