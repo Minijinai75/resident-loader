@@ -35,6 +35,10 @@
 | Root topology / extension validator / hybrid contract validator | PASS | Direct install passed; extension 10/10 with 0 warnings/failures; technical contract passed hybrid route |
 | ZIP listing | PASS | Exactly `manifest.json`, `README.md`, `dist/index.js`, and `dist/style.css` |
 | Chrome against committed v0.3.0 dist | PASS | Drawer remained compact (173px, no embedded panel); separate settings page had two feature-setting sections; letter diary had TXT action and zero setting controls |
+| Chrome mobile QA at 390×844 | PASS | Settings and letter diary stayed within a 374px panel with 8px safe margins; document width remained 390px, settings grid was one column, and all checked actions were at least 48px high |
+| `npm test` after mobile polish | PASS | 10 files / 44 tests |
+| Final build / topology / extension / hybrid validators | PASS | Build passed; direct-install topology passed; extension 10/10 with 0 warnings/failures; technical contract passed hybrid route |
+| `npm run package` twice after mobile polish | PASS | Both runs produced SHA-256 `ea8a78c877d6ca8ec35ccebc91ee1a0e3bdba67eaaa6eb009b44e8f90b750149` |
 
 ## Pending
 

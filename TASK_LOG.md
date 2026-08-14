@@ -60,3 +60,11 @@
 - Behavior: Daily, letters, and stories each keep independent `world::uid` checkbox selections in per-character settings. Only checked entries are included in the generated Prompt, with a 16,000-character total safety cap.
 - RED/GREEN: Missing adapter, settings fields, Prompt section, and UI checkboxes all failed before implementation. Focused tests passed after implementation; full suite now passes 10 files / 44 tests.
 - Package: v0.3.0 built reproducibly twice after the final README update; SHA-256 `0c48e383118160b64728c2abc81f2406d7b85301d08bc611c6dffffdc2f17e90`.
+
+## 2026-08-14 23:03
+
+- Mobile polish: settings, letter diary, and story board headers now wrap cleanly; header actions use the full width, fields stay one-column, content cards use tighter padding, and extension-entry actions become large two-column touch targets with the settings action full width.
+- Browser QA: Chrome mobile emulation at 390×844 reported a 390px document width with no horizontal overflow, an 8px safe margin around the 374px panel, a one-column settings grid, and 48px minimum action height. The letter diary also remained inside the viewport with a 48px TXT button.
+- Verification: 10 files / 44 tests passed; build, direct-install topology, extension validator 10/10, and hybrid contract validator passed.
+- Package: v0.3.0 built reproducibly twice with SHA-256 `ea8a78c877d6ca8ec35ccebc91ee1a0e3bdba67eaaa6eb009b44e8f90b750149`.
+- Next: Commit/push, refresh the v0.3.0 release asset, and verify the public ZIP hash.

@@ -494,9 +494,33 @@
     transform: none;
   }
 
+  .resident-loader-panel-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .resident-loader-panel h2 {
+    font-size: 19px;
+    line-height: 1.35;
+  }
+
+  .resident-loader-panel-header .resident-loader-actions {
+    width: 100%;
+  }
+
+  .resident-loader-panel-header .resident-loader-button {
+    flex: 1 1 128px;
+  }
+
   .resident-loader-panel-body {
     max-height: calc(100dvh - 126px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     padding: 10px;
+  }
+
+  .resident-loader-section {
+    padding: 13px;
   }
 
   .resident-loader-grid {
@@ -513,6 +537,29 @@
 
   .resident-loader-button {
     min-height: 48px;
+  }
+
+  .resident-loader-entry-actions .resident-loader-entry-button {
+    flex: 1 1 calc(50% - 4px);
+  }
+
+  .resident-loader-entry-actions .resident-loader-entry-button-primary {
+    flex-basis: 100%;
+  }
+
+  .resident-loader-world-info-row {
+    gap: 8px;
+    padding: 9px;
+  }
+
+  .resident-loader-letters-page .resident-loader-panel-body,
+  .resident-loader-stories-page .resident-loader-panel-body {
+    padding: 10px;
+  }
+
+  .resident-loader-diary-entry,
+  .resident-loader-board-post {
+    padding: 14px;
   }
 }
 

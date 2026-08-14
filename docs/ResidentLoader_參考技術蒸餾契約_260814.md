@@ -215,3 +215,5 @@ onDisable → 移除 event listener、panel、pet、timer、Blob URL；不刪使
 - [x] 產品流程已由使用者核對
 - [x] 映射、state owner、版本與 rollback 策略已定
 - [x] validator PASS（26-08-14 18:31，hybrid route）
+- [x] 手機 browser QA PASS（26-08-14 23:00，Chrome 390×844）：設定頁／來信日記皆為 374px 滿版安全寬度、文件無水平溢出、單欄欄位、按鈕最小高度 48px。
+- [x] v0.3.0 可重現封裝兩次同雜湊（26-08-14 23:01）：`ea8a78c877d6ca8ec35ccebc91ee1a0e3bdba67eaaa6eb009b44e8f90b750149`。

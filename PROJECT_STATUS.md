@@ -4,9 +4,9 @@
 
 - Project: Resident Loader
 - Active task: Split the compact extension entry, full settings, letter diary, and story board into separate HTML views
-- Current phase: v0.3.0 plus read-only world-info selection implemented, packaged, and locally verified
-- Overall status: ready to publish; waiting for Mini's in-Tavern update smoke after release
-- Last updated: 2026-08-14 22:43 Asia/Taipei
+- Current phase: v0.3.0 plus read-only world-info selection and mobile page polish implemented, packaged, and locally verified
+- Overall status: mobile-polished v0.3.0 ready to republish; waiting for Mini's in-Tavern update smoke after release refresh
+- Last updated: 2026-08-14 23:03 Asia/Taipei
 
 ## Current Goal
 
@@ -28,4 +28,4 @@ Bound characters can also choose enabled always-on world-info entries independen
 
 ## Next Step
 
-Publish v0.3.0, then update the installed extension and exercise compact entry, separate settings, character-card switching, daily bubble, diary/board reading, TXT download, and history reload in real SillyTavern.
+Refresh the v0.3.0 release asset, then update the installed extension and exercise compact entry, separate settings, character-card switching, daily bubble, diary/board reading, TXT download, and history reload in real SillyTavern.
