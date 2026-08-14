@@ -29,3 +29,13 @@
 - Next: commit/push, v0.2.1 release, public checks, and real headed SillyTavern smoke.
 - Published: implementation commit `8155dd0`; GitHub Actions run `31805997614` passed; v0.2.1 release asset returned HTTP 200, 53,737 bytes, and the expected SHA-256. Public manifest reports `display_name: 酒館桌寵` and version `0.2.1`.
 - Remaining: real headed SillyTavern smoke only.
+
+## 2026-08-14 22:08
+
+- Report: the extension entry should use SillyTavern's collapsible presentation, and clicking「開啟設定」appeared to do nothing after updating.
+- Reference: distilled the public Chat Completion Tabs implementation: `inline-drawer` root, `inline-drawer-toggle inline-drawer-header`, `inline-drawer-content`, native icon classes, and explicit open-class toggling.
+- RED: native-drawer structure/toggle tests failed; the settings click test also reproduced no panel after an immediate event-loop turn.
+- Root cause: the entry was a custom static card and launched a detached asynchronous body modal with no loading or failure feedback; it did not participate in the drawer's visible content flow.
+- Fix: v0.2.2 removes the redundant settings button; expanding the native drawer automatically mounts settings inside it, shows immediate loading/failure text, and keeps letter/story readers as body overlays.
+- Verification: focused drawer/settings-click tests passed; full suite passed (8 files / 40 tests); package, direct-install topology, and extension validation 10/10 passed. ZIP SHA-256: `13b80388c830a4d1e488686dd4c26ea09aad2c790e85594f1fedc2481a6dbfc0`.
+- Next: commit/push, release/public verification, then Mini updates once more.

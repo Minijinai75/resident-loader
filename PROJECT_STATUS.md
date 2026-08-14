@@ -3,10 +3,10 @@
 ## Snapshot
 
 - Project: Resident Loader
-- Active task: Publish 【酒館桌寵】 v0.2.1 complete interaction update
-- Current phase: v0.2.1 published and publicly verified
-- Overall status: complete; headed SillyTavern smoke remains as follow-up QA
-- Last updated: 2026-08-14 21:44 Asia/Taipei
+- Active task: Fix the unresponsive settings action and adopt SillyTavern's native collapsible drawer
+- Current phase: v0.2.2 implementation and RED/GREEN interaction tests complete; final package verification pending
+- Overall status: in progress
+- Last updated: 2026-08-14 22:08 Asia/Taipei
 
 ## Current Goal
 

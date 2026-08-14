@@ -56,6 +56,7 @@ export class ResidentLoaderApp {
   private extensionEntry?: HTMLElement;
   private petMenu?: HTMLElement;
   private panel?: HTMLElement;
+  private panelHost?: HTMLElement;
   private panelView: 'settings' | GenerationFeature = 'settings';
   private petVisible = true;
   private identity: TavernIdentity | null = null;
@@ -98,7 +99,11 @@ export class ResidentLoaderApp {
     this.repository = undefined;
   }
 
-  async openPanel(view: 'settings' | GenerationFeature = this.panelView): Promise<void> {
+  async openPanel(
+    view: 'settings' | GenerationFeature = this.panelView,
+    requestedHost?: HTMLElement | null,
+  ): Promise<void> {
+    if (requestedHost !== undefined) this.panelHost = requestedHost ?? undefined;
     this.panelView = view;
     const repository = this.requireRepository();
     const packs = await repository.listPacks();
@@ -161,7 +166,15 @@ export class ResidentLoaderApp {
     });
     this.panel?.remove();
     this.panel = nextPanel;
-    document.body.append(nextPanel);
+    if (this.panelHost?.isConnected) {
+      nextPanel.classList.add('resident-loader-panel-inline');
+      nextPanel.setAttribute('role', 'region');
+      nextPanel.removeAttribute('aria-modal');
+      this.panelHost.replaceChildren(nextPanel);
+    } else {
+      this.panelHost = undefined;
+      document.body.append(nextPanel);
+    }
     this.wirePanel(nextPanel);
     nextPanel.querySelector<HTMLElement>('[data-action="close"]')?.focus();
   }
@@ -174,8 +187,18 @@ export class ResidentLoaderApp {
   private mountExtensionEntry(): void {
     this.extensionEntry?.remove();
     const entry = createExtensionEntry();
-    entry.querySelector<HTMLButtonElement>('[data-action="open-settings"]')
-      ?.addEventListener('click', () => void this.openPanel('settings'));
+    entry.addEventListener('resident-loader:drawer-open', () => {
+      const status = entry.querySelector<HTMLElement>('[data-entry-status]');
+      const host = entry.querySelector<HTMLElement>('[data-panel-host]');
+      if (this.panel?.isConnected && this.panelHost === host) return;
+      if (status) status.textContent = '正在開啟桌寵設定…';
+      void this.openPanel('settings', host).then(() => {
+        if (status) status.textContent = '';
+      }).catch((error) => {
+        console.error('[酒館桌寵] 無法開啟設定', error);
+        if (status) status.textContent = `設定開啟失敗：${error instanceof Error ? error.message : String(error)}`;
+      });
+    });
     entry.querySelector<HTMLButtonElement>('[data-action="show-pet"]')
       ?.addEventListener('click', () => this.setPetVisible(true));
     entry.querySelector<HTMLButtonElement>('[data-action="hide-pet"]')
@@ -203,7 +226,7 @@ export class ResidentLoaderApp {
     const closeAndOpen = (view: GenerationFeature): void => {
       this.petMenu?.remove();
       this.petMenu = undefined;
-      void this.openPanel(view);
+      void this.openPanel(view, null);
     };
     const menu = createPetQuickMenu({
       openLetters: () => closeAndOpen('letters'),
@@ -274,6 +297,7 @@ export class ResidentLoaderApp {
     panel.querySelector<HTMLButtonElement>('[data-action="close"]')?.addEventListener('click', () => {
       panel.remove();
       if (this.panel === panel) this.panel = undefined;
+      this.panelHost = undefined;
     });
 
     panel.querySelector<HTMLInputElement>('[data-action="import"]')?.addEventListener('change', (event) => {

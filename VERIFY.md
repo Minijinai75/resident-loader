@@ -23,6 +23,10 @@
 | Root topology, extension validator, and hybrid contract validators | PASS | Repository layout passed; extension validation 10/10 with 0 warnings/failures; both contract copies accepted |
 | GitHub Actions run `31805997614` | PASS | Independent v0.2.1 CI completed for commit `8155dd0` |
 | Public manifest, release page, and v0.2.1 ZIP | PASS | Manifest name/version are `酒館桌寵`/`0.2.1`; ZIP HTTP 200, 53,737 bytes, SHA-256 `b61a244f1f2a785fa8970fcada528ffaa115d9cbb790513904c8c7279a88b36e` |
+| Native drawer + settings-click RED/GREEN tests | PASS | 2 files / 5 focused tests; click mounts settings inside `.inline-drawer-content` and loading errors are visible |
+| `npm test` after v0.2.2 drawer repair | PASS | 8 files / 40 tests |
+| `npm run package` for v0.2.2 | PASS | Build succeeded; `resident-loader-v0.2.2.zip` SHA-256 `13b80388c830a4d1e488686dd4c26ea09aad2c790e85594f1fedc2481a6dbfc0` |
+| Root topology and extension validator for v0.2.2 | PASS | Direct-install layout passed; 10 passed / 0 warnings / 0 failures |
 
 ## Pending
 

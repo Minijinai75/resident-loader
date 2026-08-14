@@ -1,5 +1,7 @@
 # Decisions
 
+- 2026-08-14: 擴充頁入口採 SillyTavern 原生 `inline-drawer` 結構；展開即自動載入設定，不再保留多餘的設定按鈕。設定面板提供載入／失敗回饋，來信與番外仍由桌寵快捷選單開啟獨立閱讀層。
+
 ## 2026-08-14 - Dedicated extension repository
 
 - Status: confirmed by Mini

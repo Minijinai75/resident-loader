@@ -17,22 +17,29 @@
 }
 
 .resident-loader-extension-entry {
-  display: grid;
-  gap: 10px;
-  margin: 10px 0;
-  padding: 12px;
-  border: 1px solid var(--resident-line);
-  border-radius: 10px;
+  margin: 8px 0;
 }
 
-.resident-loader-extension-entry h4,
 .resident-loader-extension-entry p {
   margin: 0;
+}
+
+.resident-loader-entry-body {
+  padding: 8px 4px 12px;
+}
+
+.resident-loader-entry-body.open {
+  display: grid;
+  gap: 10px;
 }
 
 .resident-loader-extension-entry p {
   opacity: 0.78;
   font-size: 0.9em;
+}
+
+.resident-loader-entry-status {
+  color: var(--warning, #ffb86b);
 }
 
 .resident-loader-entry-actions {
@@ -121,6 +128,21 @@
   border-radius: 24px;
   box-shadow: 0 24px 80px rgba(31, 20, 29, 0.42);
   font: 400 15px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.resident-loader-panel.resident-loader-panel-inline {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  margin-top: 4px;
+  box-shadow: none;
+}
+
+.resident-loader-panel-inline .resident-loader-panel-body {
+  max-height: none;
 }
 
 .resident-loader-panel-header {

@@ -2552,19 +2552,53 @@ function actionButton(label, action) {
 function createExtensionEntry() {
   const entry = document.createElement("div");
   entry.id = "resident-loader-settings-entry";
-  entry.className = "resident-loader-extension-entry";
-  const heading = document.createElement("h4");
+  entry.className = "inline-drawer resident-loader-extension-entry";
+  const toggle = document.createElement("div");
+  toggle.className = "inline-drawer-toggle inline-drawer-header";
+  toggle.setAttribute("role", "button");
+  toggle.tabIndex = 0;
+  toggle.setAttribute("aria-expanded", "false");
+  const heading = document.createElement("b");
   heading.textContent = "酒館桌寵";
+  const icon = document.createElement("div");
+  icon.className = "inline-drawer-icon fa-solid fa-circle-chevron-down down";
+  toggle.append(heading, icon);
+  const content = document.createElement("div");
+  content.className = "inline-drawer-content resident-loader-entry-body";
   const description = document.createElement("p");
   description.textContent = "匯入角色包、調整設定，或開啟與關閉目前角色的桌寵。";
   const actions = document.createElement("div");
   actions.className = "resident-loader-entry-actions";
   actions.append(
-    actionButton("開啟設定", "open-settings"),
     actionButton("開啟桌寵", "show-pet"),
     actionButton("關閉桌寵", "hide-pet")
   );
-  entry.append(heading, description, actions);
+  const status = document.createElement("p");
+  status.className = "resident-loader-entry-status";
+  status.dataset.entryStatus = "true";
+  const panelHost = document.createElement("div");
+  panelHost.className = "resident-loader-inline-panel-host";
+  panelHost.dataset.panelHost = "true";
+  content.append(description, actions, status, panelHost);
+  entry.append(toggle, content);
+  const setOpen = (open) => {
+    toggle.classList.toggle("open", open);
+    content.classList.toggle("open", open);
+    icon.classList.toggle("down", !open);
+    icon.classList.toggle("up", open);
+    toggle.setAttribute("aria-expanded", String(open));
+  };
+  const toggleOpen = () => {
+    const open = !content.classList.contains("open");
+    setOpen(open);
+    if (open) entry.dispatchEvent(new Event("resident-loader:drawer-open"));
+  };
+  toggle.addEventListener("click", toggleOpen);
+  toggle.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    toggleOpen();
+  });
   return entry;
 }
 function element(tagName, className, text) {
@@ -3497,6 +3531,7 @@ class ResidentLoaderApp {
   extensionEntry;
   petMenu;
   panel;
+  panelHost;
   panelView = "settings";
   petVisible = true;
   identity = null;
@@ -3532,7 +3567,8 @@ class ResidentLoaderApp {
     this.repository?.close();
     this.repository = void 0;
   }
-  async openPanel(view = this.panelView) {
+  async openPanel(view = this.panelView, requestedHost) {
+    if (requestedHost !== void 0) this.panelHost = requestedHost ?? void 0;
     this.panelView = view;
     const repository = this.requireRepository();
     const packs = await repository.listPacks();
@@ -3589,7 +3625,15 @@ class ResidentLoaderApp {
     });
     this.panel?.remove();
     this.panel = nextPanel;
-    document.body.append(nextPanel);
+    if (this.panelHost?.isConnected) {
+      nextPanel.classList.add("resident-loader-panel-inline");
+      nextPanel.setAttribute("role", "region");
+      nextPanel.removeAttribute("aria-modal");
+      this.panelHost.replaceChildren(nextPanel);
+    } else {
+      this.panelHost = void 0;
+      document.body.append(nextPanel);
+    }
     this.wirePanel(nextPanel);
     nextPanel.querySelector('[data-action="close"]')?.focus();
   }
@@ -3600,7 +3644,18 @@ class ResidentLoaderApp {
   mountExtensionEntry() {
     this.extensionEntry?.remove();
     const entry = createExtensionEntry();
-    entry.querySelector('[data-action="open-settings"]')?.addEventListener("click", () => void this.openPanel("settings"));
+    entry.addEventListener("resident-loader:drawer-open", () => {
+      const status = entry.querySelector("[data-entry-status]");
+      const host2 = entry.querySelector("[data-panel-host]");
+      if (this.panel?.isConnected && this.panelHost === host2) return;
+      if (status) status.textContent = "正在開啟桌寵設定…";
+      void this.openPanel("settings", host2).then(() => {
+        if (status) status.textContent = "";
+      }).catch((error) => {
+        console.error("[酒館桌寵] 無法開啟設定", error);
+        if (status) status.textContent = `設定開啟失敗：${error instanceof Error ? error.message : String(error)}`;
+      });
+    });
     entry.querySelector('[data-action="show-pet"]')?.addEventListener("click", () => this.setPetVisible(true));
     entry.querySelector('[data-action="hide-pet"]')?.addEventListener("click", () => this.setPetVisible(false));
     const host = document.querySelector("#extensions_settings2, #extensions_settings");
@@ -3624,7 +3679,7 @@ class ResidentLoaderApp {
     const closeAndOpen = (view) => {
       this.petMenu?.remove();
       this.petMenu = void 0;
-      void this.openPanel(view);
+      void this.openPanel(view, null);
     };
     const menu = createPetQuickMenu({
       openLetters: () => closeAndOpen("letters"),
@@ -3686,6 +3741,7 @@ class ResidentLoaderApp {
     panel.querySelector('[data-action="close"]')?.addEventListener("click", () => {
       panel.remove();
       if (this.panel === panel) this.panel = void 0;
+      this.panelHost = void 0;
     });
     panel.querySelector('[data-action="import"]')?.addEventListener("change", (event) => {
       void this.importPack(event.currentTarget);

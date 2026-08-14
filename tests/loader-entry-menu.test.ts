@@ -5,13 +5,30 @@ import { createExtensionEntry } from '../src/loader/extension-entry';
 import { createPetQuickMenu } from '../src/loader/pet-menu';
 
 describe('酒館桌寵 extension entry', () => {
-  it('lives in the extension drawer with explicit settings, on, and off actions', () => {
+  it('uses SillyTavern native inline-drawer structure with explicit pet on and off actions', () => {
     const entry = createExtensionEntry();
-    expect(entry.querySelector('h4')?.textContent).toBe('酒館桌寵');
-    expect(entry.querySelector('[data-action="open-settings"]')).not.toBeNull();
+    expect(entry.classList.contains('inline-drawer')).toBe(true);
+    expect(entry.querySelector('.inline-drawer-toggle.inline-drawer-header')?.textContent).toContain('酒館桌寵');
+    expect(entry.querySelector('.inline-drawer-content')).not.toBeNull();
+    expect(entry.querySelector('[data-action="open-settings"]')).toBeNull();
     expect(entry.querySelector('[data-action="show-pet"]')).not.toBeNull();
     expect(entry.querySelector('[data-action="hide-pet"]')).not.toBeNull();
     expect(entry.textContent).not.toContain('Resident Loader｜共用桌寵');
+  });
+
+  it('opens and closes its content when the native-style header is clicked', () => {
+    const entry = createExtensionEntry();
+    let openEvents = 0;
+    entry.addEventListener('resident-loader:drawer-open', () => { openEvents += 1; });
+    const toggle = entry.querySelector<HTMLElement>('.inline-drawer-toggle')!;
+    const content = entry.querySelector<HTMLElement>('.inline-drawer-content')!;
+    toggle.click();
+    expect(toggle.classList.contains('open')).toBe(true);
+    expect(content.classList.contains('open')).toBe(true);
+    expect(openEvents).toBe(1);
+    toggle.click();
+    expect(content.classList.contains('open')).toBe(false);
+    expect(openEvents).toBe(1);
   });
 });
 
