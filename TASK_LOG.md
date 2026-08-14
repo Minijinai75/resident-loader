@@ -68,3 +68,6 @@
 - Verification: 10 files / 44 tests passed; build, direct-install topology, extension validator 10/10, and hybrid contract validator passed.
 - Package: v0.3.0 built reproducibly twice with SHA-256 `ea8a78c877d6ca8ec35ccebc91ee1a0e3bdba67eaaa6eb009b44e8f90b750149`.
 - Next: Commit/push, refresh the v0.3.0 release asset, and verify the public ZIP hash.
+- Published: commit `f4d113d`; GitHub Actions run `31812640285` passed. The refreshed v0.3.0 public ZIP is 57,784 bytes and matches SHA-256 `ea8a78c877d6ca8ec35ccebc91ee1a0e3bdba67eaaa6eb009b44e8f90b750149`.
+- Workshop check: the live site links v0.3.0, exposes the row-level size/vertical sync button, and keeps its mobile viewport setup.
+- Remaining: Mini updates/reloads【酒館桌寵】inside real SillyTavern for the runtime smoke.

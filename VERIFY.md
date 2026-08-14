@@ -39,6 +39,9 @@
 | `npm test` after mobile polish | PASS | 10 files / 44 tests |
 | Final build / topology / extension / hybrid validators | PASS | Build passed; direct-install topology passed; extension 10/10 with 0 warnings/failures; technical contract passed hybrid route |
 | `npm run package` twice after mobile polish | PASS | Both runs produced SHA-256 `ea8a78c877d6ca8ec35ccebc91ee1a0e3bdba67eaaa6eb009b44e8f90b750149` |
+| GitHub Actions run `31812640285` | PASS | Independent install, tests, build, committed-dist drift check, and package completed for `f4d113d` |
+| Refreshed public v0.3.0 ZIP | PASS | HTTP download returned 57,784 bytes and SHA-256 `ea8a78c877d6ca8ec35ccebc91ee1a0e3bdba67eaaa6eb009b44e8f90b750149` |
+| Live workshop after Pages run `31811981730` | PASS | v0.3.0 Loader link, row-level size/vertical sync control, and mobile viewport are present |
 
 ## Pending
 
