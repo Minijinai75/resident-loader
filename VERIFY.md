@@ -48,8 +48,9 @@
 | Chrome desktop visual QA at 1100×850 | PASS | Letter feed stayed 680px wide; story feed stayed 720px wide; both panels fit without horizontal overflow |
 | Chrome mobile visual QA at 390×844 | PASS | Both pages fit a 374px panel with 8px margins, 390px document width, and 48px minimum buttons; letter columns were 58px + 286px and story notes were 304px wide |
 | `npm run package` twice for v0.3.1 | PASS | Both runs produced SHA-256 `e1c6a804df98e6ed1d043067595d92ebb7fecff3af3d182a6c3304ec3cce4df3` |
+| GitHub Actions run `31816357745` | PASS | Independent install, 10 files / 44 tests, build, committed-dist drift check, and package completed for `d0e0f2e` |
+| Public manifest/dist/v0.3.1 ZIP | PASS | Manifest name/version are【酒館桌寵】/0.3.1; date-rail and four-tone board markers are live; ZIP is 59,435 bytes with matching SHA-256 |
 
 ## Pending
 
-- v0.3.1 package/release/public verification.
 - Real headed SillyTavern v0.3.1 update/generation/TXT/reload smoke.

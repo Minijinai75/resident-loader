@@ -4,9 +4,9 @@
 
 - Project: Resident Loader
 - Active task: Redesign the letter diary and conversation-extra board as polished mobile reading pages
-- Current phase: v0.3.1 date-rail letters and pastel story cards implemented and locally verified
-- Overall status: v0.3.1 implementation is green; packaging and public release remain
-- Last updated: 2026-08-14 23:45 Asia/Taipei
+- Current phase: v0.3.1 date-rail letters and pastel story cards published and publicly verified
+- Overall status: v0.3.1 release complete; waiting for Mini's in-Tavern update smoke
+- Last updated: 2026-08-15 01:03 Asia/Taipei
 
 ## Current Goal
 
@@ -24,8 +24,8 @@ Bound characters can also choose enabled always-on world-info entries independen
 
 ## Current Blockers
 
-- No implementation blocker. v0.3.1 packaging, release, and Mini's real SillyTavern update smoke remain.
+- No release blocker. Mini's real SillyTavern update smoke remains.
 
 ## Next Step
 
-Package and publish v0.3.1, then update the installed extension and exercise diary/board reading, TXT download, and history reload in real SillyTavern.
+Update the installed extension and exercise diary/board reading, TXT download, and history reload in real SillyTavern.

@@ -80,3 +80,11 @@
 - Implementation: Letters now group records by month and place each date beside its paper. Stories now use numbered cards rotating through pink, lavender, mint, and mist-blue accents while keeping generated content, copy, delete, and TXT behavior unchanged.
 - Verification: 10 files / 44 tests passed; production build passed. Real Chrome at 1100×850 showed 680px/720px reading columns with no horizontal overflow. At 390×844 both pages stayed inside a 374px panel with 8px safe margins, 390px document width, and 48px minimum buttons. The v0.3.1 package reproduced twice at SHA-256 `e1c6a804df98e6ed1d043067595d92ebb7fecff3af3d182a6c3304ec3cce4df3`.
 - Next: Package, commit/push, publish v0.3.1, and verify the public manifest and ZIP.
+
+## 2026-08-15 01:03
+
+- Publication: pushed commit `d0e0f2e`, created release `v0.3.1`, and published `resident-loader-v0.3.1.zip`.
+- CI: GitHub Actions run `31816357745` completed install, 10 files / 44 tests, build, committed-dist drift check, and package successfully.
+- Public proof: manifest reports【酒館桌寵】v0.3.1; public dist contains the date rail, letter sheet, numbered four-tone board, and mobile CSS. The 59,435-byte release ZIP matches local SHA-256 `e1c6a804df98e6ed1d043067595d92ebb7fecff3af3d182a6c3304ec3cce4df3`.
+- Workshop handoff: public workshop now points its offline fallback to v0.3.1 and passed Pages/browser verification.
+- Remaining: Mini updates the installed extension and performs the real SillyTavern smoke.
