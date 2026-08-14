@@ -12,6 +12,8 @@ export interface LoaderPanelModel {
   profiles: ConnectionProfileSummary[];
   histories: Record<GenerationFeature, HistoryRecord[]>;
   contextSummaries: Record<GenerationFeature, ConversationSummary>;
+  view: 'settings' | GenerationFeature;
+  hasBinding: boolean;
 }
 
 function element<K extends keyof HTMLElementTagNameMap>(
@@ -68,7 +70,10 @@ function packSelector(model: LoaderPanelModel): HTMLElement {
   importInput.type = 'file';
   importInput.accept = '.zip,application/zip';
   importInput.dataset.action = 'import';
-  section.append(field('匯入 .jrpack.zip', importInput));
+  importInput.hidden = true;
+  const importButton = button('選擇並匯入角色包（.jrpack.zip）', 'import-trigger');
+  importButton.classList.add('resident-loader-button-primary', 'resident-loader-import-button');
+  section.append(importButton, importInput);
 
   const select = element('select');
   select.dataset.packSelect = 'true';
@@ -88,33 +93,42 @@ function packSelector(model: LoaderPanelModel): HTMLElement {
 
   const bind = button('綁定目前角色', 'bind');
   bind.disabled = !model.identity || model.packs.length === 0;
-  section.append(bind);
+  const unbind = button('解除目前角色綁定', 'unbind');
+  unbind.disabled = !model.identity || !model.hasBinding;
+  const actions = element('div', 'resident-loader-actions');
+  actions.append(bind, unbind);
+  section.append(actions);
   return section;
 }
 
 function appearanceSection(settings: LoaderSettings): HTMLElement {
   const section = element('section', 'resident-loader-section');
   section.append(element('h3', '', '外觀與速度'));
+  section.append(element('p', 'resident-loader-help', '先選整體感覺即可；想精準調整時再打開進階微調。'));
   const presets = element('div', 'resident-loader-actions resident-loader-presets');
   for (const [key, label] of [
-    ['slow', '慢'],
+    ['slow', '慢一點'],
     ['normal', '正常'],
-    ['fast', '快'],
+    ['fast', '快一點'],
   ] as const) {
     const preset = button(label, 'motion-preset');
     preset.dataset.motionPreset = key;
     presets.append(preset);
   }
   section.append(presets);
+  const advanced = element('details', 'resident-loader-advanced');
+  advanced.dataset.advancedMotion = 'true';
+  advanced.append(element('summary', '', '進階微調（可不打開）'));
   const grid = element('div', 'resident-loader-grid');
   grid.append(
     rangeControl('桌機大小 %', 'desktopSizePercent', settings.appearance.desktopSizePercent, 60, 180),
     rangeControl('手機大小 %', 'mobileSizePercent', settings.appearance.mobileSizePercent, 60, 180),
     rangeControl('透明度', 'opacity', settings.appearance.opacity, 0.2, 1, 0.05),
-    rangeControl('動畫間隔 ms', 'frameIntervalMs', settings.motion.frameIntervalMs, 50, 1000, 5),
-    rangeControl('移動速度 px/s', 'walkSpeedPxPerSec', settings.motion.walkSpeedPxPerSec, 10, 500),
+    rangeControl('動作播放速度（數字越小越快）', 'frameIntervalMs', settings.motion.frameIntervalMs, 50, 1000, 5),
+    rangeControl('畫面移動速度（數字越大走得越快）', 'walkSpeedPxPerSec', settings.motion.walkSpeedPxPerSec, 10, 500),
   );
-  section.append(grid, button('儲存外觀與速度', 'save-settings'), button('重設桌寵位置', 'reset-position'));
+  advanced.append(grid);
+  section.append(advanced, button('儲存外觀與速度', 'save-settings'), button('重設桌寵位置', 'reset-position'));
   return section;
 }
 
@@ -133,6 +147,7 @@ function idlePromptSection(
   prompt.placeholder = packPrompt || '先匯入並綁定角色包。';
   section.append(
     field('可見、可自行修改的日常 Prompt', prompt),
+    element('p', 'resident-loader-help', '日常內容會以目前綁定角色為基礎；這一版不會自行呼叫模型或新增聊天樓層。'),
     button('恢復角色包預設 Prompt', 'reset-prompt:idle'),
   );
   return section;
@@ -189,7 +204,7 @@ function featureSection(
   profiles.value = featureSettings.profileId;
 
   const controls = element('div', 'resident-loader-grid');
-  controls.append(field('帶入最近幾樓（0＝不帶）', recent), field('生成連線', mode), field('指定 Profile', profiles));
+  controls.append(field('帶入最近幾樓（0＝不帶）', recent), field('生成連線', mode), field('指定連線設定檔案', profiles));
   section.append(controls);
 
   const summary = model.contextSummaries[feature];
@@ -210,7 +225,10 @@ function featureSection(
   section.append(contextBox);
 
   const actions = element('div', 'resident-loader-actions');
-  const generate = button(`生成${label}`, `generate:${feature}`);
+  const generate = button(
+    feature === 'letters' ? '生成一封新來信' : '生成一篇新番外',
+    `generate:${feature}`,
+  );
   generate.disabled = !model.identity || !pack;
   actions.append(button('恢復角色包預設 Prompt', `reset-prompt:${feature}`), generate);
   section.append(actions);
@@ -248,9 +266,17 @@ export function createLoaderPanel(model: LoaderPanelModel): HTMLElement {
   panel.setAttribute('aria-labelledby', 'resident-loader-title');
 
   const header = element('header', 'resident-loader-panel-header');
-  const title = element('h2', '', 'Resident Loader');
+  const titleText = model.view === 'letters'
+    ? '角色來信紀錄'
+    : model.view === 'stories'
+      ? '對話番外紀錄'
+      : '酒館桌寵';
+  const title = element('h2', '', titleText);
   title.id = 'resident-loader-title';
-  header.append(title, button('關閉', 'close'));
+  const headerActions = element('div', 'resident-loader-actions');
+  if (model.view !== 'settings') headerActions.append(button('返回設定', 'back-settings'));
+  headerActions.append(button('關閉', 'close'));
+  header.append(title, headerActions);
 
   const identity = model.identity
     ? `目前角色：${model.identity.characterName}`
@@ -260,13 +286,15 @@ export function createLoaderPanel(model: LoaderPanelModel): HTMLElement {
 
   const body = element('div', 'resident-loader-panel-body');
   const selectedPack = model.packs.find((pack) => pack.manifest.id === model.selectedPackId);
-  body.append(
-    packSelector(model),
-    appearanceSection(model.settings),
-    idlePromptSection(model.settings, selectedPack),
-    featureSection('letters', model, selectedPack),
-    featureSection('stories', model, selectedPack),
-  );
+  if (model.view === 'settings') {
+    body.append(
+      packSelector(model),
+      appearanceSection(model.settings),
+      idlePromptSection(model.settings, selectedPack),
+    );
+  } else {
+    body.append(featureSection(model.view, model, selectedPack));
+  }
   panel.append(header, status, body);
   return panel;
 }

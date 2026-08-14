@@ -2506,6 +2506,32 @@ async function importResidentPack(archive) {
     importedAt: Date.now()
   };
 }
+function actionButton(label, action) {
+  const button2 = document.createElement("button");
+  button2.type = "button";
+  button2.className = "menu_button resident-loader-entry-button";
+  button2.textContent = label;
+  button2.dataset.action = action;
+  return button2;
+}
+function createExtensionEntry() {
+  const entry = document.createElement("div");
+  entry.id = "resident-loader-settings-entry";
+  entry.className = "resident-loader-extension-entry";
+  const heading = document.createElement("h4");
+  heading.textContent = "酒館桌寵";
+  const description = document.createElement("p");
+  description.textContent = "匯入角色包、調整設定，或開啟與關閉目前角色的桌寵。";
+  const actions = document.createElement("div");
+  actions.className = "resident-loader-entry-actions";
+  actions.append(
+    actionButton("開啟設定", "open-settings"),
+    actionButton("開啟桌寵", "show-pet"),
+    actionButton("關閉桌寵", "hide-pet")
+  );
+  entry.append(heading, description, actions);
+  return entry;
+}
 function element(tagName, className, text) {
   const node = document.createElement(tagName);
   if (className) node.className = className;
@@ -2544,7 +2570,10 @@ function packSelector(model) {
   importInput.type = "file";
   importInput.accept = ".zip,application/zip";
   importInput.dataset.action = "import";
-  section.append(field("匯入 .jrpack.zip", importInput));
+  importInput.hidden = true;
+  const importButton = button("選擇並匯入角色包（.jrpack.zip）", "import-trigger");
+  importButton.classList.add("resident-loader-button-primary", "resident-loader-import-button");
+  section.append(importButton, importInput);
   const select = element("select");
   select.dataset.packSelect = "true";
   if (model.packs.length === 0) {
@@ -2562,32 +2591,41 @@ function packSelector(model) {
   section.append(field("已匯入的角色包", select));
   const bind = button("綁定目前角色", "bind");
   bind.disabled = !model.identity || model.packs.length === 0;
-  section.append(bind);
+  const unbind = button("解除目前角色綁定", "unbind");
+  unbind.disabled = !model.identity || !model.hasBinding;
+  const actions = element("div", "resident-loader-actions");
+  actions.append(bind, unbind);
+  section.append(actions);
   return section;
 }
 function appearanceSection(settings) {
   const section = element("section", "resident-loader-section");
   section.append(element("h3", "", "外觀與速度"));
+  section.append(element("p", "resident-loader-help", "先選整體感覺即可；想精準調整時再打開進階微調。"));
   const presets = element("div", "resident-loader-actions resident-loader-presets");
   for (const [key, label] of [
-    ["slow", "慢"],
+    ["slow", "慢一點"],
     ["normal", "正常"],
-    ["fast", "快"]
+    ["fast", "快一點"]
   ]) {
     const preset = button(label, "motion-preset");
     preset.dataset.motionPreset = key;
     presets.append(preset);
   }
   section.append(presets);
+  const advanced = element("details", "resident-loader-advanced");
+  advanced.dataset.advancedMotion = "true";
+  advanced.append(element("summary", "", "進階微調（可不打開）"));
   const grid = element("div", "resident-loader-grid");
   grid.append(
     rangeControl("桌機大小 %", "desktopSizePercent", settings.appearance.desktopSizePercent, 60, 180),
     rangeControl("手機大小 %", "mobileSizePercent", settings.appearance.mobileSizePercent, 60, 180),
     rangeControl("透明度", "opacity", settings.appearance.opacity, 0.2, 1, 0.05),
-    rangeControl("動畫間隔 ms", "frameIntervalMs", settings.motion.frameIntervalMs, 50, 1e3, 5),
-    rangeControl("移動速度 px/s", "walkSpeedPxPerSec", settings.motion.walkSpeedPxPerSec, 10, 500)
+    rangeControl("動作播放速度（數字越小越快）", "frameIntervalMs", settings.motion.frameIntervalMs, 50, 1e3, 5),
+    rangeControl("畫面移動速度（數字越大走得越快）", "walkSpeedPxPerSec", settings.motion.walkSpeedPxPerSec, 10, 500)
   );
-  section.append(grid, button("儲存外觀與速度", "save-settings"), button("重設桌寵位置", "reset-position"));
+  advanced.append(grid);
+  section.append(advanced, button("儲存外觀與速度", "save-settings"), button("重設桌寵位置", "reset-position"));
   return section;
 }
 function idlePromptSection(settings, pack) {
@@ -2602,6 +2640,7 @@ function idlePromptSection(settings, pack) {
   prompt.placeholder = packPrompt || "先匯入並綁定角色包。";
   section.append(
     field("可見、可自行修改的日常 Prompt", prompt),
+    element("p", "resident-loader-help", "日常內容會以目前綁定角色為基礎；這一版不會自行呼叫模型或新增聊天樓層。"),
     button("恢復角色包預設 Prompt", "reset-prompt:idle")
   );
   return section;
@@ -2648,7 +2687,7 @@ function featureSection(feature, model, pack) {
   }
   profiles.value = featureSettings2.profileId;
   const controls = element("div", "resident-loader-grid");
-  controls.append(field("帶入最近幾樓（0＝不帶）", recent), field("生成連線", mode), field("指定 Profile", profiles));
+  controls.append(field("帶入最近幾樓（0＝不帶）", recent), field("生成連線", mode), field("指定連線設定檔案", profiles));
   section.append(controls);
   const summary = model.contextSummaries[feature];
   const contextBox = element("details", "resident-loader-context");
@@ -2667,7 +2706,10 @@ function featureSection(feature, model, pack) {
   contextBox.append(summaryLabel, preview);
   section.append(contextBox);
   const actions = element("div", "resident-loader-actions");
-  const generate = button(`生成${label}`, `generate:${feature}`);
+  const generate = button(
+    feature === "letters" ? "生成一封新來信" : "生成一篇新番外",
+    `generate:${feature}`
+  );
   generate.disabled = !model.identity || !pack;
   actions.append(button("恢復角色包預設 Prompt", `reset-prompt:${feature}`), generate);
   section.append(actions);
@@ -2702,23 +2744,50 @@ function createLoaderPanel(model) {
   panel.setAttribute("aria-modal", "true");
   panel.setAttribute("aria-labelledby", "resident-loader-title");
   const header = element("header", "resident-loader-panel-header");
-  const title = element("h2", "", "Resident Loader");
+  const titleText = model.view === "letters" ? "角色來信紀錄" : model.view === "stories" ? "對話番外紀錄" : "酒館桌寵";
+  const title = element("h2", "", titleText);
   title.id = "resident-loader-title";
-  header.append(title, button("關閉", "close"));
+  const headerActions = element("div", "resident-loader-actions");
+  if (model.view !== "settings") headerActions.append(button("返回設定", "back-settings"));
+  headerActions.append(button("關閉", "close"));
+  header.append(title, headerActions);
   const identity = model.identity ? `目前角色：${model.identity.characterName}` : "請先打開一個角色聊天，再進行綁定。";
   const status = element("p", "resident-loader-status", identity);
   status.dataset.status = "true";
   const body = element("div", "resident-loader-panel-body");
   const selectedPack = model.packs.find((pack) => pack.manifest.id === model.selectedPackId);
-  body.append(
-    packSelector(model),
-    appearanceSection(model.settings),
-    idlePromptSection(model.settings, selectedPack),
-    featureSection("letters", model, selectedPack),
-    featureSection("stories", model, selectedPack)
-  );
+  if (model.view === "settings") {
+    body.append(
+      packSelector(model),
+      appearanceSection(model.settings),
+      idlePromptSection(model.settings, selectedPack)
+    );
+  } else {
+    body.append(featureSection(model.view, model, selectedPack));
+  }
   panel.append(header, status, body);
   return panel;
+}
+function menuButton(label, view, handler) {
+  const button2 = document.createElement("button");
+  button2.type = "button";
+  button2.className = "resident-loader-quick-button";
+  button2.textContent = label;
+  button2.dataset.view = view;
+  button2.addEventListener("click", handler);
+  return button2;
+}
+function createPetQuickMenu(options) {
+  const menu = document.createElement("div");
+  menu.id = "resident-loader-quick-menu";
+  menu.className = "resident-loader-quick-menu";
+  menu.setAttribute("role", "menu");
+  menu.setAttribute("aria-label", "桌寵紀錄");
+  menu.append(
+    menuButton("來信紀錄", "letters", options.openLetters),
+    menuButton("對話番外紀錄", "stories", options.openStories)
+  );
+  return menu;
 }
 const DEFAULT_LOADER_SETTINGS = {
   idlePromptOverride: "",
@@ -2910,6 +2979,11 @@ class ResidentRepository {
     );
     await transactionComplete(transaction);
     return binding;
+  }
+  async unbindCharacter(characterKey) {
+    const transaction = this.database.transaction("bindings", "readwrite");
+    transaction.objectStore("bindings").delete(characterKey);
+    await transactionComplete(transaction);
   }
   async putSettings(characterKey, value) {
     const settings = normalizeLoaderSettings(value);
@@ -3292,8 +3366,11 @@ class ResidentLoaderApp {
   getContext;
   repository;
   sprite;
-  launcher;
+  extensionEntry;
+  petMenu;
   panel;
+  panelView = "settings";
+  petVisible = true;
   identity = null;
   activePack;
   settings = normalizeLoaderSettings({});
@@ -3305,7 +3382,7 @@ class ResidentLoaderApp {
     if (this.started) return;
     this.started = true;
     this.repository = await openResidentRepository();
-    this.mountLauncher();
+    this.mountExtensionEntry();
     this.subscribe("APP_READY");
     this.subscribe("CHAT_CHANGED");
     window.addEventListener("beforeunload", this.handleBeforeUnload);
@@ -3320,12 +3397,15 @@ class ResidentLoaderApp {
     this.sprite = void 0;
     this.panel?.remove();
     this.panel = void 0;
-    this.launcher?.remove();
-    this.launcher = void 0;
+    this.petMenu?.remove();
+    this.petMenu = void 0;
+    this.extensionEntry?.remove();
+    this.extensionEntry = void 0;
     this.repository?.close();
     this.repository = void 0;
   }
-  async openPanel() {
+  async openPanel(view = this.panelView) {
+    this.panelView = view;
     const repository = this.requireRepository();
     const packs = await repository.listPacks();
     const binding = this.identity ? await repository.getBinding(this.identity.characterKey) : void 0;
@@ -3368,7 +3448,9 @@ class ResidentLoaderApp {
       settings: this.settings,
       profiles: extractConnectionProfiles(this.getContext()),
       histories,
-      contextSummaries
+      contextSummaries,
+      view,
+      hasBinding: Boolean(binding)
     });
     this.panel?.remove();
     this.panel = nextPanel;
@@ -3380,15 +3462,41 @@ class ResidentLoaderApp {
     if (!this.repository) throw new Error("Resident Loader 尚未完成啟動。");
     return this.repository;
   }
-  mountLauncher() {
-    const launcher = document.createElement("button");
-    launcher.id = "resident-loader-launcher";
-    launcher.type = "button";
-    launcher.textContent = "桌寵";
-    launcher.setAttribute("aria-label", "打開 Resident Loader");
-    launcher.addEventListener("click", () => void this.openPanel());
-    document.body.append(launcher);
-    this.launcher = launcher;
+  mountExtensionEntry() {
+    this.extensionEntry?.remove();
+    const entry = createExtensionEntry();
+    entry.querySelector('[data-action="open-settings"]')?.addEventListener("click", () => void this.openPanel("settings"));
+    entry.querySelector('[data-action="show-pet"]')?.addEventListener("click", () => this.setPetVisible(true));
+    entry.querySelector('[data-action="hide-pet"]')?.addEventListener("click", () => this.setPetVisible(false));
+    const host = document.querySelector("#extensions_settings2, #extensions_settings");
+    (host ?? document.body).append(entry);
+    this.extensionEntry = entry;
+  }
+  setPetVisible(visible) {
+    this.petVisible = visible;
+    this.petMenu?.remove();
+    this.petMenu = void 0;
+    this.sprite?.destroy();
+    this.sprite = void 0;
+    if (visible && this.activePack) this.mountSprite(this.activePack);
+  }
+  togglePetMenu() {
+    if (this.petMenu) {
+      this.petMenu.remove();
+      this.petMenu = void 0;
+      return;
+    }
+    const closeAndOpen = (view) => {
+      this.petMenu?.remove();
+      this.petMenu = void 0;
+      void this.openPanel(view);
+    };
+    const menu = createPetQuickMenu({
+      openLetters: () => closeAndOpen("letters"),
+      openStories: () => closeAndOpen("stories")
+    });
+    document.body.append(menu);
+    this.petMenu = menu;
   }
   subscribe(eventName) {
     const context = this.getContext();
@@ -3420,7 +3528,7 @@ class ResidentLoaderApp {
     this.settings = await repository.getSettings(this.identity.characterKey) ?? normalizeLoaderSettings({});
     const binding = await repository.getBinding(this.identity.characterKey);
     if (binding) this.activePack = await repository.getPack(binding.packId);
-    if (this.activePack) this.mountSprite(this.activePack);
+    if (this.activePack && this.petVisible) this.mountSprite(this.activePack);
     if (this.panel) await this.openPanel();
   }
   mountSprite(pack) {
@@ -3428,7 +3536,7 @@ class ResidentLoaderApp {
     this.sprite = new SpriteResident({
       pack,
       settings: this.settings,
-      onOpen: () => void this.openPanel(),
+      onOpen: () => this.togglePetMenu(),
       onPositionChange: (viewport, point) => {
         if (!this.identity) return;
         this.settings = normalizeLoaderSettings({
@@ -3447,12 +3555,21 @@ class ResidentLoaderApp {
     panel.querySelector('[data-action="import"]')?.addEventListener("change", (event) => {
       void this.importPack(event.currentTarget);
     });
+    panel.querySelector('[data-action="import-trigger"]')?.addEventListener("click", () => {
+      panel.querySelector('[data-action="import"]')?.click();
+    });
     panel.querySelector("[data-pack-select]")?.addEventListener("change", (event) => {
       this.panelSelectedPackId = event.currentTarget.value;
       void this.openPanel();
     });
     panel.querySelector('[data-action="bind"]')?.addEventListener("click", () => {
       void this.bindSelectedPack(panel);
+    });
+    panel.querySelector('[data-action="unbind"]')?.addEventListener("click", () => {
+      void this.unbindCurrentCharacter();
+    });
+    panel.querySelector('[data-action="back-settings"]')?.addEventListener("click", () => {
+      void this.openPanel("settings");
     });
     panel.querySelector('[data-action="save-settings"]')?.addEventListener("click", () => {
       void this.saveSettings(panel, true);
@@ -3519,10 +3636,19 @@ class ResidentLoaderApp {
       this.setStatus(error instanceof Error ? error.message : "角色綁定失敗。", "error");
     }
   }
+  async unbindCurrentCharacter() {
+    if (!this.identity) return this.setStatus("請先打開一個角色聊天。", "error");
+    if (!window.confirm(`解除「${this.identity.characterName}」與桌寵的綁定？角色包和生成紀錄都會保留。`)) return;
+    await this.requireRepository().unbindCharacter(this.identity.characterKey);
+    await this.rebind();
+    this.setStatus(`已解除「${this.identity.characterName}」的桌寵綁定。`, "success");
+  }
   settingsFromPanel(panel) {
     const features = { ...this.settings.features };
     for (const feature of ["letters", "stories"]) {
-      const prompt = panel.querySelector(`[data-prompt="${feature}"]`)?.value ?? "";
+      const promptControl = panel.querySelector(`[data-prompt="${feature}"]`);
+      if (!promptControl) continue;
+      const prompt = promptControl.value;
       const packDefault = this.activePack?.manifest.prompts[feature] ?? "";
       const recentMessages = Number(
         panel.querySelector(`[data-recent="${feature}"]`)?.value
@@ -3536,7 +3662,8 @@ class ResidentLoaderApp {
         profileId
       };
     }
-    const idlePrompt = panel.querySelector('[data-prompt="idle"]')?.value ?? "";
+    const idleControl = panel.querySelector('[data-prompt="idle"]');
+    const idlePrompt = idleControl?.value ?? this.settings.idlePromptOverride;
     const idleDefault = this.activePack?.manifest.prompts.idle ?? "";
     return normalizeLoaderSettings({
       idlePromptOverride: idlePrompt.trim() === idleDefault.trim() ? "" : idlePrompt,
@@ -3604,7 +3731,7 @@ class ResidentLoaderApp {
     );
     this.sprite?.destroy();
     this.sprite = void 0;
-    if (this.activePack) this.mountSprite(this.activePack);
+    if (this.activePack && this.petVisible) this.mountSprite(this.activePack);
     if (rerender) {
       await this.openPanel();
       this.setStatus("Prompt、樓數、連線與桌寵外觀已保存。", "success");
@@ -3624,7 +3751,7 @@ class ResidentLoaderApp {
     });
     await this.requireRepository().putSettings(this.identity.characterKey, this.settings);
     this.sprite?.destroy();
-    if (this.activePack) this.mountSprite(this.activePack);
+    if (this.activePack && this.petVisible) this.mountSprite(this.activePack);
     this.setStatus("桌寵已回到右下角。", "success");
   }
   async resetPrompt(feature) {

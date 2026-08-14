@@ -68,6 +68,31 @@ describe('ResidentRepository', () => {
     second.close();
   });
 
+  it('unbinds only the character and preserves its pack and generated history', async () => {
+    const repository = await openResidentRepository({ databaseName: databaseName() });
+    await repository.putPack(pack);
+    await repository.bindCharacter({ characterKey: 'avatar:jinghe.png', displayName: '景和' }, 'jinghe');
+    await repository.addHistory({
+      characterKey: 'avatar:jinghe.png',
+      chatKey: 'chat:1',
+      feature: 'letters',
+      content: '保存的來信',
+      prompt: 'p',
+      apiSource: 'current',
+    });
+
+    await repository.unbindCharacter('avatar:jinghe.png');
+
+    expect(await repository.getBinding('avatar:jinghe.png')).toBeUndefined();
+    expect(await repository.getPack('jinghe')).toEqual(pack);
+    expect(await repository.listHistory({
+      characterKey: 'avatar:jinghe.png',
+      chatKey: 'chat:1',
+      feature: 'letters',
+    })).toHaveLength(1);
+    repository.close();
+  });
+
   it('keeps generated records in time order and isolates character/chat/feature scopes', async () => {
     const repository = await openResidentRepository({ databaseName: databaseName() });
     await repository.addHistory({

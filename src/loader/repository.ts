@@ -133,6 +133,12 @@ export class ResidentRepository {
     return binding;
   }
 
+  async unbindCharacter(characterKey: string): Promise<void> {
+    const transaction = this.database.transaction('bindings', 'readwrite');
+    transaction.objectStore('bindings').delete(characterKey);
+    await transactionComplete(transaction);
+  }
+
   async putSettings(characterKey: string, value: unknown): Promise<LoaderSettings> {
     const settings = normalizeLoaderSettings(value);
     const transaction = this.database.transaction('settings', 'readwrite');

@@ -1,12 +1,12 @@
 {
-  "display_name": "Resident Loader｜共用桌寵載入器",
+  "display_name": "酒館桌寵",
   "loading_order": 50,
   "requires": [],
   "optional": [],
   "js": "dist/index.js",
   "css": "dist/style.css",
   "author": "Mini & 景和",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "homePage": "https://github.com/Minijinai75/resident-loader",
   "auto_update": true,
   "hooks": {

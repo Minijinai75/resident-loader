@@ -4,7 +4,9 @@ import {
   type TavernChatMessage,
 } from './context-builder';
 import { importResidentPack, type ImportedResidentPack } from './pack-importer';
+import { createExtensionEntry } from './extension-entry';
 import { createLoaderPanel } from './panel';
+import { createPetQuickMenu } from './pet-menu';
 import {
   openResidentRepository,
   type HistoryRecord,
@@ -50,8 +52,11 @@ function numericValue(panel: HTMLElement, key: string, fallback: number): number
 export class ResidentLoaderApp {
   private repository?: ResidentRepository;
   private sprite?: SpriteResident;
-  private launcher?: HTMLButtonElement;
+  private extensionEntry?: HTMLElement;
+  private petMenu?: HTMLElement;
   private panel?: HTMLElement;
+  private panelView: 'settings' | GenerationFeature = 'settings';
+  private petVisible = true;
   private identity: TavernIdentity | null = null;
   private activePack?: ImportedResidentPack;
   private settings: LoaderSettings = normalizeLoaderSettings({});
@@ -68,7 +73,7 @@ export class ResidentLoaderApp {
     if (this.started) return;
     this.started = true;
     this.repository = await openResidentRepository();
-    this.mountLauncher();
+    this.mountExtensionEntry();
     this.subscribe('APP_READY');
     this.subscribe('CHAT_CHANGED');
     window.addEventListener('beforeunload', this.handleBeforeUnload);
@@ -84,13 +89,16 @@ export class ResidentLoaderApp {
     this.sprite = undefined;
     this.panel?.remove();
     this.panel = undefined;
-    this.launcher?.remove();
-    this.launcher = undefined;
+    this.petMenu?.remove();
+    this.petMenu = undefined;
+    this.extensionEntry?.remove();
+    this.extensionEntry = undefined;
     this.repository?.close();
     this.repository = undefined;
   }
 
-  async openPanel(): Promise<void> {
+  async openPanel(view: 'settings' | GenerationFeature = this.panelView): Promise<void> {
+    this.panelView = view;
     const repository = this.requireRepository();
     const packs = await repository.listPacks();
     const binding = this.identity
@@ -140,6 +148,8 @@ export class ResidentLoaderApp {
       profiles: extractConnectionProfiles(this.getContext()),
       histories,
       contextSummaries,
+      view,
+      hasBinding: Boolean(binding),
     });
     this.panel?.remove();
     this.panel = nextPanel;
@@ -153,15 +163,46 @@ export class ResidentLoaderApp {
     return this.repository;
   }
 
-  private mountLauncher(): void {
-    const launcher = document.createElement('button');
-    launcher.id = 'resident-loader-launcher';
-    launcher.type = 'button';
-    launcher.textContent = '桌寵';
-    launcher.setAttribute('aria-label', '打開 Resident Loader');
-    launcher.addEventListener('click', () => void this.openPanel());
-    document.body.append(launcher);
-    this.launcher = launcher;
+  private mountExtensionEntry(): void {
+    this.extensionEntry?.remove();
+    const entry = createExtensionEntry();
+    entry.querySelector<HTMLButtonElement>('[data-action="open-settings"]')
+      ?.addEventListener('click', () => void this.openPanel('settings'));
+    entry.querySelector<HTMLButtonElement>('[data-action="show-pet"]')
+      ?.addEventListener('click', () => this.setPetVisible(true));
+    entry.querySelector<HTMLButtonElement>('[data-action="hide-pet"]')
+      ?.addEventListener('click', () => this.setPetVisible(false));
+    const host = document.querySelector('#extensions_settings2, #extensions_settings');
+    (host ?? document.body).append(entry);
+    this.extensionEntry = entry;
+  }
+
+  private setPetVisible(visible: boolean): void {
+    this.petVisible = visible;
+    this.petMenu?.remove();
+    this.petMenu = undefined;
+    this.sprite?.destroy();
+    this.sprite = undefined;
+    if (visible && this.activePack) this.mountSprite(this.activePack);
+  }
+
+  private togglePetMenu(): void {
+    if (this.petMenu) {
+      this.petMenu.remove();
+      this.petMenu = undefined;
+      return;
+    }
+    const closeAndOpen = (view: GenerationFeature): void => {
+      this.petMenu?.remove();
+      this.petMenu = undefined;
+      void this.openPanel(view);
+    };
+    const menu = createPetQuickMenu({
+      openLetters: () => closeAndOpen('letters'),
+      openStories: () => closeAndOpen('stories'),
+    });
+    document.body.append(menu);
+    this.petMenu = menu;
   }
 
   private subscribe(eventName: 'APP_READY' | 'CHAT_CHANGED'): void {
@@ -200,7 +241,7 @@ export class ResidentLoaderApp {
     this.settings = (await repository.getSettings(this.identity.characterKey)) ?? normalizeLoaderSettings({});
     const binding = await repository.getBinding(this.identity.characterKey);
     if (binding) this.activePack = await repository.getPack(binding.packId);
-    if (this.activePack) this.mountSprite(this.activePack);
+    if (this.activePack && this.petVisible) this.mountSprite(this.activePack);
     if (this.panel) await this.openPanel();
   }
 
@@ -209,7 +250,7 @@ export class ResidentLoaderApp {
     this.sprite = new SpriteResident({
       pack,
       settings: this.settings,
-      onOpen: () => void this.openPanel(),
+      onOpen: () => this.togglePetMenu(),
       onPositionChange: (viewport, point) => {
         if (!this.identity) return;
         this.settings = normalizeLoaderSettings({
@@ -230,12 +271,21 @@ export class ResidentLoaderApp {
     panel.querySelector<HTMLInputElement>('[data-action="import"]')?.addEventListener('change', (event) => {
       void this.importPack(event.currentTarget as HTMLInputElement);
     });
+    panel.querySelector<HTMLButtonElement>('[data-action="import-trigger"]')?.addEventListener('click', () => {
+      panel.querySelector<HTMLInputElement>('[data-action="import"]')?.click();
+    });
     panel.querySelector<HTMLSelectElement>('[data-pack-select]')?.addEventListener('change', (event) => {
       this.panelSelectedPackId = (event.currentTarget as HTMLSelectElement).value;
       void this.openPanel();
     });
     panel.querySelector<HTMLButtonElement>('[data-action="bind"]')?.addEventListener('click', () => {
       void this.bindSelectedPack(panel);
+    });
+    panel.querySelector<HTMLButtonElement>('[data-action="unbind"]')?.addEventListener('click', () => {
+      void this.unbindCurrentCharacter();
+    });
+    panel.querySelector<HTMLButtonElement>('[data-action="back-settings"]')?.addEventListener('click', () => {
+      void this.openPanel('settings');
     });
     panel.querySelector<HTMLButtonElement>('[data-action="save-settings"]')?.addEventListener('click', () => {
       void this.saveSettings(panel, true);
@@ -315,10 +365,20 @@ export class ResidentLoaderApp {
     }
   }
 
+  private async unbindCurrentCharacter(): Promise<void> {
+    if (!this.identity) return this.setStatus('請先打開一個角色聊天。', 'error');
+    if (!window.confirm(`解除「${this.identity.characterName}」與桌寵的綁定？角色包和生成紀錄都會保留。`)) return;
+    await this.requireRepository().unbindCharacter(this.identity.characterKey);
+    await this.rebind();
+    this.setStatus(`已解除「${this.identity.characterName}」的桌寵綁定。`, 'success');
+  }
+
   private settingsFromPanel(panel: HTMLElement): LoaderSettings {
     const features = { ...this.settings.features };
     for (const feature of ['letters', 'stories'] as const) {
-      const prompt = panel.querySelector<HTMLTextAreaElement>(`[data-prompt="${feature}"]`)?.value ?? '';
+      const promptControl = panel.querySelector<HTMLTextAreaElement>(`[data-prompt="${feature}"]`);
+      if (!promptControl) continue;
+      const prompt = promptControl.value;
       const packDefault = this.activePack?.manifest.prompts[feature] ?? '';
       const recentMessages = Number(
         panel.querySelector<HTMLInputElement>(`[data-recent="${feature}"]`)?.value,
@@ -332,7 +392,8 @@ export class ResidentLoaderApp {
         profileId,
       };
     }
-    const idlePrompt = panel.querySelector<HTMLTextAreaElement>('[data-prompt="idle"]')?.value ?? '';
+    const idleControl = panel.querySelector<HTMLTextAreaElement>('[data-prompt="idle"]');
+    const idlePrompt = idleControl?.value ?? this.settings.idlePromptOverride;
     const idleDefault = this.activePack?.manifest.prompts.idle ?? '';
     return normalizeLoaderSettings({
       idlePromptOverride: idlePrompt.trim() === idleDefault.trim() ? '' : idlePrompt,
@@ -409,7 +470,7 @@ export class ResidentLoaderApp {
     );
     this.sprite?.destroy();
     this.sprite = undefined;
-    if (this.activePack) this.mountSprite(this.activePack);
+    if (this.activePack && this.petVisible) this.mountSprite(this.activePack);
     if (rerender) {
       await this.openPanel();
       this.setStatus('Prompt、樓數、連線與桌寵外觀已保存。', 'success');
@@ -430,7 +491,7 @@ export class ResidentLoaderApp {
     });
     await this.requireRepository().putSettings(this.identity.characterKey, this.settings);
     this.sprite?.destroy();
-    if (this.activePack) this.mountSprite(this.activePack);
+    if (this.activePack && this.petVisible) this.mountSprite(this.activePack);
     this.setStatus('桌寵已回到右下角。', 'success');
   }
 

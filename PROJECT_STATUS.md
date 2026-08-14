@@ -3,27 +3,27 @@
 ## Snapshot
 
 - Project: Resident Loader
-- Active task: Publish a repository-root SillyTavern extension install
-- Current phase: v0.1.1 public repository and release verified
+- Active task: Publish 【酒館桌寵】 v0.2.0 interaction and archive update
+- Current phase: v0.2.0 implementation, package, and browser-local contract verified
 - Overall status: in progress
-- Last updated: 2026-08-14 20:22 Asia/Taipei
+- Last updated: 2026-08-14 21:23 Asia/Taipei
 
 ## Current Goal
 
-Users paste `https://github.com/Minijinai75/resident-loader` into SillyTavern's extension installer, then import safe `.jrpack.zip` character packs made by Tavern Pet Workshop.
+Users install one【酒館桌寵】extension, manage it from the extensions drawer, and open persistent letter/conversation-extra reading pages by clicking the bound pet.
 
 ## Success Criteria
 
 - `manifest.json` and prebuilt `dist/` exist at repository root.
 - Existing Loader behavior tests remain green after extraction from the website repo.
 - The repository can build and produce an offline ZIP.
-- GitHub CI passes and the v0.1.1 release asset is downloadable.
+- v0.2.0 tests, committed dist, package, and release asset are verified.
 - The workshop links to and copies the repository installation URL.
 
 ## Current Blockers
 
-- None in code or publishing. A real headed SillyTavern installation smoke remains.
+- Publishing is pending this handoff. A real headed SillyTavern installation smoke remains.
 
 ## Next Step
 
-Install `https://github.com/Minijinai75/resident-loader` in a real SillyTavern, then exercise import, binding, current/profile generation, drag persistence, panel reopen, and history reload.
+Push and release v0.2.0, then update the installed extension and exercise extension-drawer entry, import, unbind/rebind, pet quick menu, current/profile generation, and history reload in real SillyTavern.
