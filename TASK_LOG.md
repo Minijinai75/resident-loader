@@ -27,3 +27,5 @@
 - Implementation: v0.2.1 adds manual「讓桌寵說一句」generation, current/profile selection, recent-floor control, safe visible card context (description/personality/scenario only), and a temporary speech bubble. Automatic generation remains off and SEND remains zero.
 - Verification: 8 test files / 38 tests passed; build, package, root topology, 10/10 extension validation, and both hybrid contract validators passed. Package SHA-256: `b61a244f1f2a785fa8970fcada528ffaa115d9cbb790513904c8c7279a88b36e`.
 - Next: commit/push, v0.2.1 release, public checks, and real headed SillyTavern smoke.
+- Published: implementation commit `8155dd0`; GitHub Actions run `31805997614` passed; v0.2.1 release asset returned HTTP 200, 53,737 bytes, and the expected SHA-256. Public manifest reports `display_name: 酒館桌寵` and version `0.2.1`.
+- Remaining: real headed SillyTavern smoke only.
