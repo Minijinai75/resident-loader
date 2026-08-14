@@ -22,6 +22,11 @@ import {
   getTavernIdentity,
   type TavernIdentity,
 } from './st-adapter';
+import {
+  buildSelectedWorldInfoContext,
+  loadConstantWorldInfoEntries,
+  type WorldInfoEntrySummary,
+} from './world-info-adapter';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -63,6 +68,7 @@ export class ResidentLoaderApp {
   private activePack?: ImportedResidentPack;
   private settings: LoaderSettings = normalizeLoaderSettings({});
   private panelSelectedPackId = '';
+  private worldInfoEntries: WorldInfoEntrySummary[] = [];
   private readonly unsubscribers: Array<() => void> = [];
   private started = false;
   private readonly generation;
@@ -147,6 +153,9 @@ export class ResidentLoaderApp {
       this.identity?.userName ?? 'USER',
       this.identity?.characterName ?? '角色',
     );
+    this.worldInfoEntries = binding && view === 'settings'
+      ? await loadConstantWorldInfoEntries()
+      : [];
 
     const nextPanel = createLoaderPanel({
       identity: this.identity,
@@ -159,6 +168,7 @@ export class ResidentLoaderApp {
       idleContextSummary,
       view,
       hasBinding: Boolean(binding),
+      worldInfoEntries: this.worldInfoEntries,
     });
     this.panel?.remove();
     this.panel = nextPanel;
@@ -256,6 +266,7 @@ export class ResidentLoaderApp {
     this.sprite = undefined;
     this.activePack = undefined;
     this.panelSelectedPackId = '';
+    this.worldInfoEntries = [];
 
     if (!this.identity) {
       if (this.panel) await this.openPanel();
@@ -421,6 +432,11 @@ export class ResidentLoaderApp {
         recentMessages,
         mode: mode === 'profile' ? 'profile' : 'current',
         profileId,
+        worldInfoEntryIds: this.selectedWorldInfoIds(
+          panel,
+          feature,
+          this.settings.features[feature].worldInfoEntryIds,
+        ),
       };
     }
     const idleControl = panel.querySelector<HTMLTextAreaElement>('[data-prompt="idle"]');
@@ -435,6 +451,11 @@ export class ResidentLoaderApp {
               ? 'profile'
               : 'current',
             profileId: panel.querySelector<HTMLSelectElement>('[data-profile="idle"]')?.value ?? '',
+            worldInfoEntryIds: this.selectedWorldInfoIds(
+              panel,
+              'idle',
+              this.settings.idle.worldInfoEntryIds,
+            ),
           }
         : this.settings.idle,
       appearance: {
@@ -465,6 +486,17 @@ export class ResidentLoaderApp {
       position: this.settings.position,
       features,
     });
+  }
+
+  private selectedWorldInfoIds(
+    panel: HTMLElement,
+    feature: GenerationFeature | 'idle',
+    fallback: string[],
+  ): string[] {
+    const controls = [...panel.querySelectorAll<HTMLInputElement>(
+      `[data-world-info-entry="${feature}"]`,
+    )];
+    return controls.length ? controls.filter((input) => input.checked).map((input) => input.value) : fallback;
   }
 
   private applyMotionPreset(panel: HTMLElement, preset: string | undefined): void {
@@ -519,6 +551,10 @@ export class ResidentLoaderApp {
         userName: this.identity.userName,
         characterName: this.identity.characterName,
         characterContext: extractCharacterCardContext(context),
+        worldInfoContext: buildSelectedWorldInfoContext(
+          this.worldInfoEntries,
+          this.settings.idle.worldInfoEntryIds,
+        ),
       });
       const result = await this.generation.generateText({
         mode: this.settings.idle.mode,
@@ -601,6 +637,10 @@ export class ResidentLoaderApp {
         userName: this.identity.userName,
         characterName: this.identity.characterName,
         characterContext: extractCharacterCardContext(context),
+        worldInfoContext: buildSelectedWorldInfoContext(
+          this.worldInfoEntries,
+          featureSettings.worldInfoEntryIds,
+        ),
       });
       const result = await this.generation.generateText({
         mode: featureSettings.mode,

@@ -6,12 +6,14 @@ export interface FeatureSettings {
   recentMessages: number;
   mode: GenerationMode;
   profileId: string;
+  worldInfoEntryIds: string[];
 }
 
 export interface IdleSettings {
   recentMessages: number;
   mode: GenerationMode;
   profileId: string;
+  worldInfoEntryIds: string[];
 }
 
 export interface LoaderSettings {
@@ -39,6 +41,7 @@ export const DEFAULT_LOADER_SETTINGS: LoaderSettings = {
     recentMessages: 4,
     mode: 'current',
     profileId: '',
+    worldInfoEntryIds: [],
   },
   appearance: {
     desktopSizePercent: 100,
@@ -59,12 +62,14 @@ export const DEFAULT_LOADER_SETTINGS: LoaderSettings = {
       recentMessages: 8,
       mode: 'current',
       profileId: '',
+      worldInfoEntryIds: [],
     },
     stories: {
       promptOverride: '',
       recentMessages: 6,
       mode: 'current',
       profileId: '',
+      worldInfoEntryIds: [],
     },
   },
 };
@@ -82,6 +87,15 @@ function clamp(value: unknown, minimum: number, maximum: number, fallback: numbe
   return Math.min(maximum, Math.max(minimum, finiteNumber(value, fallback)));
 }
 
+function worldInfoEntryIds(value: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(value)) return fallback;
+  return [...new Set(value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0 && item.length <= 400))]
+    .slice(0, 100);
+}
+
 function featureSettings(value: unknown, fallback: FeatureSettings): FeatureSettings {
   const input = isRecord(value) ? value : {};
   const mode = input.mode === 'profile' ? 'profile' : 'current';
@@ -94,6 +108,7 @@ function featureSettings(value: unknown, fallback: FeatureSettings): FeatureSett
       typeof input.profileId === 'string' && input.profileId.length <= 200
         ? input.profileId
         : fallback.profileId,
+    worldInfoEntryIds: worldInfoEntryIds(input.worldInfoEntryIds, fallback.worldInfoEntryIds),
   };
 }
 
@@ -106,6 +121,7 @@ function idleSettings(value: unknown, fallback: IdleSettings): IdleSettings {
       typeof input.profileId === 'string' && input.profileId.length <= 200
         ? input.profileId
         : fallback.profileId,
+    worldInfoEntryIds: worldInfoEntryIds(input.worldInfoEntryIds, fallback.worldInfoEntryIds),
   };
 }
 

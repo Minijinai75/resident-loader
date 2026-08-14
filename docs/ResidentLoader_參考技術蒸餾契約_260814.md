@@ -2,10 +2,10 @@
 
 > 狀態：v0.3.0 精簡折疊入口、獨立設定頁、日記／留言板閱讀頁與 TXT 匯出已實作並通過本機驗證；待公開發布與酒館內真人 smoke
 > 路由：hybrid
-> 更新時間：26-08-14 22:18（Asia/Taipei）
+> 更新時間：26-08-14 22:51（Asia/Taipei）
 > 目標：把景和 Resident 現有可驗證行為蒸餾成一個只安裝一次、可匯入多個資料包的 SillyTavern 共用 Loader。
 
-本輪邊界：Loader v1 只處理資料型角色包、桌寵動畫、酒館生成與本機歷史；不接手角色卡的 MVU 狀態交易，也不修改或開關世界書。未來若加入 MVU／世界書能力，必須另立 adapter、交易與回滾契約，不能藉本次匯入格式偷偷取得權限。
+本輪邊界：Loader v1 只處理資料型角色包、桌寵動畫、酒館生成與本機歷史；不接手角色卡的 MVU 狀態交易，也不修改或開關世界書。v0.3.0 只用 read-only adapter 列出 ST 已載入的常駐條目，經 USER 勾選後複製正文進 Prompt；不得改寫條目或酒館世界書選擇。
 
 ## 1. 來源快照與權利邊界
 
@@ -19,6 +19,7 @@
 | 已驗證 API Profile 實例 | `scripts/embedded/jiangnan-pet-v2.js` | `E4FFCE2D37845CDFD7D823026947C062F88630EB9DFC88F291920B59B289AB61`；`getConnectionProfiles()` 280–293、`/profile-genstream` 370/581、current API 376/586、settings 1146–1193 | 沿用當前 API 或從酒館既有 Connection Profiles 選擇；僅記 profile id | 姜南文案與角色特例全部改成 pack/config；不得複製任何秘密 |
 | 工坊輸出契約 | 本 repo `src/pack-builder.ts` | `jinghe-resident-pack` format v1；`manifest.json`＋`pack-meta.json`＋`assets/spritesheet.png` | Loader v1 的唯一公開匯入格式 | ZIP 中其他可執行檔、SVG、HTML、路徑穿越一律拒收 |
 | 原生折疊入口參考 | [`RivelleDays/SillyTavern-ChatCompletionTabs`](https://github.com/RivelleDays/SillyTavern-ChatCompletionTabs/blob/main/index.js) `renderExtensionSettings()` | 公開原始碼可驗證 `inline-drawer`、header/toggle、content、icon 與 `open` class 互動 | 只採用 SillyTavern 公開 class／DOM 慣例並自行實作；不複製其分頁功能 | UI 結構 ADAPTER；第三方案為 AGPL-3.0，不搬用其專屬程式邏輯 |
+| ST 1.18.0 世界書 | `證據庫/graphify圖_ST-1.18.0`；[`public/scripts/world-info.js`](https://github.com/SillyTavern/SillyTavern/blob/1.18.0/public/scripts/world-info.js) | `getSortedEntries()`、角色主／附加世界書、`constant`、`disable`、`world`、`uid` | 只讀列出目前 runtime 已整理的常駐未停用條目，USER 明示勾選後加入 Prompt | READ_ONLY ADAPTER；不得呼叫 save/update/toggle API |
 
 權利判斷：參考案是 Mini 與景和自有 clean-room 工作，可抽取可驗證行為；角色專屬文字、形象與設定仍歸各 pack，不變成 Loader 的通用預設。公開前另補 LICENSE，未補前不宣稱第三方可再散布程式碼。
 
@@ -34,6 +35,7 @@
 | Connection Profiles | embedded 280–293 | 讀 ST 既有 Profile 的 id/name/api/model | `st-adapter.ts` | EXTRACTED；ST 版本差異需降級 |
 | Generation | embedded 358–386、562–599 | current API 或 `/profile-genstream`，靜默回傳文字 | `generation-adapter.ts` | EXTRACTED／不得 SEND |
 | Context capture | embedded 311、333、571 | 最近對話裁切後放入 Prompt | `context-builder.ts` | EXTRACTED；樓數改為自由設定 |
+| World-info selection | ST 1.18.0 `getSortedEntries()` | 目前 runtime 已整理條目 | `world-info-adapter.ts`＋per-feature checkbox IDs | ADAPTER；只讀、USER 明示、總正文 16,000 字上限 |
 | Prompt settings | embedded settings＋工坊 manifest | pack 預設、USER 覆寫、重設 | per-character settings | ADAPTER／CONFIG |
 | Sprite runtime | 工坊 8×12 atlas＋舊 shell | 顯示、動作、拖曳、尺寸、速度 | `sprite-resident.ts` | REIMPLEMENT |
 | Settings panel | embedded 1146–1193 | profile、桌寵尺寸等 | Loader UI | REIMPLEMENT；手機優先 |

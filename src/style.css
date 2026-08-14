@@ -350,6 +350,56 @@
   font: 400 13px/1.55 ui-monospace, "Cascadia Code", monospace;
 }
 
+.resident-loader-world-info {
+  margin: 4px 0 14px;
+  padding: 10px 12px;
+  background: #f3f7ff;
+  border: 1px solid rgba(64, 101, 155, 0.22);
+  border-radius: 10px;
+}
+
+.resident-loader-world-info > summary {
+  min-height: 34px;
+  color: #34577f;
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.resident-loader-world-info-list {
+  display: grid;
+  gap: 8px;
+}
+
+.resident-loader-world-info-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 10px;
+  color: #34465c;
+  background: white;
+  border: 1px solid rgba(64, 101, 155, 0.16);
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.resident-loader-world-info-row input {
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  accent-color: #4f78aa;
+}
+
+.resident-loader-world-info-row span {
+  display: grid;
+  gap: 3px;
+}
+
+.resident-loader-world-info-row small {
+  color: #718096;
+  line-height: 1.45;
+}
+
 .resident-loader-record {
   display: grid;
   gap: 10px;

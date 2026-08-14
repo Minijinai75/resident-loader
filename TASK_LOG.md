@@ -48,6 +48,15 @@
 - HTML views: Settings opens as a standalone overlay and owns all import/binding/appearance/Prompt/context/profile/generation controls. Letter history is a warm diary page; story history is a message-board page. Reading pages contain dates, generated content, copy/delete actions, and TXT download, but no Prompt or connection settings.
 - Binding clarification: Each character card has its own pack binding and settings. `CHAT_CHANGED` unloads the old sprite and loads the next character's binding; an unbound character never inherits the previous pet. Histories remain character + chat + feature scoped.
 - RED/GREEN: Updated entry, shell, and panel contracts and added TXT-export tests. Expected failures covered the old inline panel, mixed settings/history pages, and missing export module; all passed after implementation.
-- Verification: 9 test files / 42 tests passed; build and deterministic v0.3.0 package passed twice; direct-install topology, hybrid contract, and extension validator 10/10 passed. ZIP contains only manifest, README, JS, and CSS; SHA-256 `0f159f394c26fec7ab0f7ba6d961f8a1d0bb1bf1cb54c4e2a6b94183af8a5934`.
+- Verification before world-info addition: 9 test files / 42 tests passed; build and deterministic v0.3.0 package passed twice; direct-install topology, hybrid contract, and extension validator 10/10 passed.
 - Browser smoke: Real Chrome loaded committed dist. Expanded drawer was 173px tall with no embedded panel; settings opened outside the drawer with both feature-setting sections; letter diary opened with TXT action and zero setting sections.
 - Next: Commit/push, publish v0.3.0, verify public manifest/dist/ZIP, and update workshop download link.
+
+## 2026-08-14 22:51
+
+- Added request: When a character card is bound, expose its currently relevant always-on world-info entries as explicit Prompt selections.
+- Evidence: Queried Mini's `證據庫/graphify圖_ST-1.18.0`, then verified `public/scripts/world-info.js`: `getSortedEntries()` assembles global/character/chat/persona entries, character lore uses the card's primary and auxiliary books, and entries use `constant` plus `disable` state.
+- Boundary: Read-only adapter. It dynamically imports SillyTavern's own `/scripts/world-info.js`, lists only non-empty `constant === true && disable !== true` entries, and never changes world selection or entry state.
+- Behavior: Daily, letters, and stories each keep independent `world::uid` checkbox selections in per-character settings. Only checked entries are included in the generated Prompt, with a 16,000-character total safety cap.
+- RED/GREEN: Missing adapter, settings fields, Prompt section, and UI checkboxes all failed before implementation. Focused tests passed after implementation; full suite now passes 10 files / 44 tests.
+- Package: v0.3.0 built reproducibly twice after the final README update; SHA-256 `0c48e383118160b64728c2abc81f2406d7b85301d08bc611c6dffffdc2f17e90`.

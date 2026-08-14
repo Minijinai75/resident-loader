@@ -1,6 +1,6 @@
 function clippedText(value, maximum) {
-  const text = String(value ?? "").replace(/\s+/g, " ").trim();
-  return text.length > maximum ? `${text.slice(0, maximum)}…` : text;
+  const text2 = String(value ?? "").replace(/\s+/g, " ").trim();
+  return text2.length > maximum ? `${text2.slice(0, maximum)}…` : text2;
 }
 function buildFeaturePrompt(input) {
   const basePrompt = input.promptOverride.trim() || input.packPrompt.trim();
@@ -14,42 +14,45 @@ function buildFeaturePrompt(input) {
   const characterContext = input.characterContext?.trim().slice(0, 8e3);
   if (characterContext) sections.push(`目前綁定角色卡資料：
 ${characterContext}`);
+  const worldInfoContext = input.worldInfoContext?.trim().slice(0, 16e3);
+  if (worldInfoContext) sections.push(`USER 勾選的世界書常駐條目：
+${worldInfoContext}`);
   if (!summary.preview) return sections.join("\n\n");
   const budgetedContext = summary.preview.length > 12e3 ? `…${summary.preview.slice(-12e3)}` : summary.preview;
   sections.push(`最近對話（由舊到新）：
 ${budgetedContext}`);
   return sections.join("\n\n");
 }
-function isRecord$4(value) {
+function isRecord$5(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function currentCharacter(context) {
-  if (isRecord$4(context.character)) return context.character;
+  if (isRecord$5(context.character)) return context.character;
   const characters = context.characters;
   const id = context.characterId ?? context.character_id;
   if (Array.isArray(characters)) {
     const candidate = characters[Number(id)];
-    return isRecord$4(candidate) ? candidate : void 0;
+    return isRecord$5(candidate) ? candidate : void 0;
   }
-  if (isRecord$4(characters) && (typeof id === "string" || typeof id === "number")) {
+  if (isRecord$5(characters) && (typeof id === "string" || typeof id === "number")) {
     const candidate = characters[String(id)];
-    return isRecord$4(candidate) ? candidate : void 0;
+    return isRecord$5(candidate) ? candidate : void 0;
   }
   return void 0;
 }
 function extractCharacterCardContext(context) {
-  if (!isRecord$4(context)) return "";
+  if (!isRecord$5(context)) return "";
   const character = currentCharacter(context);
   if (!character) return "";
-  const data = isRecord$4(character.data) ? character.data : {};
+  const data = isRecord$5(character.data) ? character.data : {};
   const fields = [
     ["角色描述", data.description ?? character.description],
     ["性格", data.personality ?? character.personality],
     ["情境", data.scenario ?? character.scenario]
   ];
   return fields.map(([label, value]) => {
-    const text = clippedText(value, 2500);
-    return text ? `${label}：${text}` : "";
+    const text2 = clippedText(value, 2500);
+    return text2 ? `${label}：${text2}` : "";
   }).filter(Boolean).join("\n").slice(0, 8e3);
 }
 function summarizeRecentConversation(chat, recentMessages, userName, characterName) {
@@ -2401,7 +2404,7 @@ const ROOT_KEYS = [
   "prompts",
   "capabilities"
 ];
-function isRecord$3(value) {
+function isRecord$4(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function hasExactKeys(value, keys) {
@@ -2413,21 +2416,21 @@ function isString(value, minimum = 1, maximum = 8e3) {
   return typeof value === "string" && value.trim().length >= minimum && value.length <= maximum;
 }
 function isResidentPackManifest(value) {
-  if (!isRecord$3(value) || !hasExactKeys(value, ROOT_KEYS)) return false;
+  if (!isRecord$4(value) || !hasExactKeys(value, ROOT_KEYS)) return false;
   if (value.schemaVersion !== 1) return false;
   if (!isString(value.id, 1, 64) || !/^[\p{L}\p{N}][\p{L}\p{N}._-]*$/u.test(value.id)) return false;
   const identity = value.identity;
-  if (!isRecord$3(identity) || !hasExactKeys(identity, ["displayName", "creator", "description"])) {
+  if (!isRecord$4(identity) || !hasExactKeys(identity, ["displayName", "creator", "description"])) {
     return false;
   }
   if (!isString(identity.displayName, 1, 100)) return false;
   if (typeof identity.creator !== "string" || identity.creator.length > 100) return false;
   if (typeof identity.description !== "string" || identity.description.length > 1e3) return false;
   const assets = value.assets;
-  if (!isRecord$3(assets) || !hasExactKeys(assets, ["spritesheet"])) return false;
+  if (!isRecord$4(assets) || !hasExactKeys(assets, ["spritesheet"])) return false;
   if (assets.spritesheet !== "assets/spritesheet.png") return false;
   const animation = value.animation;
-  if (!isRecord$3(animation) || !hasExactKeys(animation, [
+  if (!isRecord$4(animation) || !hasExactKeys(animation, [
     "kind",
     "columns",
     "rows",
@@ -2437,10 +2440,10 @@ function isResidentPackManifest(value) {
   ])) return false;
   if (animation.kind !== "grid" || animation.columns !== 8 || animation.rows !== 12 || animation.frameWidth !== 128 || animation.frameHeight !== 128 || animation.frameCount !== 96) return false;
   const theme = value.theme;
-  if (!isRecord$3(theme) || !hasExactKeys(theme, ["accentColor"])) return false;
+  if (!isRecord$4(theme) || !hasExactKeys(theme, ["accentColor"])) return false;
   if (typeof theme.accentColor !== "string" || !/^#[A-Fa-f0-9]{6}$/.test(theme.accentColor)) return false;
   const prompts = value.prompts;
-  if (!isRecord$3(prompts) || !hasExactKeys(prompts, ["idle", "letters", "stories"])) return false;
+  if (!isRecord$4(prompts) || !hasExactKeys(prompts, ["idle", "letters", "stories"])) return false;
   if (!isString(prompts.idle) || !isString(prompts.letters) || !isString(prompts.stories)) return false;
   const capabilities = value.capabilities;
   if (!Array.isArray(capabilities) || capabilities.length === 0) return false;
@@ -2492,9 +2495,9 @@ function validatePng(bytes) {
     throw new Error("角色圖必須是 1024×1536 像素。");
   }
 }
-function parseJson(text, label) {
+function parseJson(text2, label) {
   try {
-    return JSON.parse(text);
+    return JSON.parse(text2);
   } catch {
     throw new Error(`${label} 不是有效的 JSON。`);
   }
@@ -2632,10 +2635,10 @@ function historyFilename(characterName, feature) {
   const suffix = feature === "letters" ? "來信日記" : "對話番外";
   return `${safeName}－${suffix}.txt`;
 }
-function element(tagName, className, text) {
+function element(tagName, className, text2) {
   const node = document.createElement(tagName);
   if (className) node.className = className;
-  if (text !== void 0) node.textContent = text;
+  if (text2 !== void 0) node.textContent = text2;
   return node;
 }
 function button(label, action) {
@@ -2662,6 +2665,47 @@ function rangeControl(label, key, value, minimum, maximum, step = 1) {
   const wrapper = field(label, input);
   wrapper.append(output);
   return wrapper;
+}
+function worldInfoSelection(feature, selectedIds, entries, hasBinding) {
+  const selected = new Set(selectedIds);
+  const details = element("details", "resident-loader-world-info");
+  const selectedCount = entries.filter((entry) => selected.has(entry.id)).length;
+  details.append(element(
+    "summary",
+    "",
+    `世界書常駐條目（已選 ${selectedCount}／${entries.length}）`
+  ));
+  details.append(element(
+    "p",
+    "resident-loader-help",
+    "只列出酒館判定為常駐且未停用的條目；勾選後才會加入這個功能的 Prompt。"
+  ));
+  if (!hasBinding) {
+    details.append(element("p", "resident-loader-empty", "先把桌寵包綁定目前角色，才能選擇角色正在使用的世界書條目。"));
+    return details;
+  }
+  if (entries.length === 0) {
+    details.append(element("p", "resident-loader-empty", "目前角色沒有可選的世界書常駐條目。"));
+    return details;
+  }
+  const list = element("div", "resident-loader-world-info-list");
+  for (const entry of entries) {
+    const row = element("label", "resident-loader-world-info-row");
+    const checkbox = element("input");
+    checkbox.type = "checkbox";
+    checkbox.value = entry.id;
+    checkbox.checked = selected.has(entry.id);
+    checkbox.dataset.worldInfoEntry = feature;
+    const copy = element("span");
+    copy.append(
+      element("strong", "", `${entry.world}｜${entry.label}`),
+      element("small", "", `${entry.content.length} 字 · ${entry.content.slice(0, 100)}${entry.content.length > 100 ? "…" : ""}`)
+    );
+    row.append(checkbox, copy);
+    list.append(row);
+  }
+  details.append(list);
+  return details;
 }
 function packSelector(model) {
   const section = element("section", "resident-loader-section");
@@ -2733,7 +2777,7 @@ function appearanceSection(settings) {
   section.append(advanced, button("重設桌寵位置", "reset-position"));
   return section;
 }
-function idlePromptSection(settings, pack, profilesList, contextSummary) {
+function idlePromptSection(settings, pack, profilesList, contextSummary, worldInfoEntries, hasBinding) {
   const section = element("section", "resident-loader-section");
   section.append(element("h3", "", "日常陪伴 Prompt"));
   const prompt = element("textarea");
@@ -2785,7 +2829,8 @@ function idlePromptSection(settings, pack, profilesList, contextSummary) {
     field("可見、可自行修改的日常 Prompt", prompt),
     element("p", "resident-loader-help", "生成時會帶入目前角色卡的描述、性格與情境。只有按下按鈕才生成；自動生成目前關閉，也不會新增聊天樓層。"),
     controls,
-    contextBox
+    contextBox,
+    worldInfoSelection("idle", settings.idle.worldInfoEntryIds, worldInfoEntries, hasBinding)
   );
   const actions = element("div", "resident-loader-actions");
   const generate = button("讓桌寵說一句", "generate:idle");
@@ -2854,6 +2899,12 @@ function featureSettingsSection(feature, model, pack) {
   preview.dataset.contextPreview = feature;
   contextBox.append(summaryLabel, preview);
   section.append(contextBox);
+  section.append(worldInfoSelection(
+    feature,
+    featureSettings2.worldInfoEntryIds,
+    model.worldInfoEntries ?? [],
+    model.hasBinding
+  ));
   const actions = element("div", "resident-loader-actions");
   const generate = button(
     feature === "letters" ? "生成一封新來信" : "生成一篇新番外",
@@ -2932,7 +2983,9 @@ function createLoaderPanel(model) {
         model.settings,
         selectedPack,
         model.profiles,
-        model.idleContextSummary ?? { messageCount: 0, characterCount: 0, preview: "" }
+        model.idleContextSummary ?? { messageCount: 0, characterCount: 0, preview: "" },
+        model.worldInfoEntries ?? [],
+        model.hasBinding
       ),
       featureSettingsSection("letters", model, selectedPack),
       featureSettingsSection("stories", model, selectedPack)
@@ -2968,7 +3021,8 @@ const DEFAULT_LOADER_SETTINGS = {
   idlePromptOverride: "",
   idle: {
     recentMessages: 4,
-    profileId: ""
+    profileId: "",
+    worldInfoEntryIds: []
   },
   appearance: {
     desktopSizePercent: 100,
@@ -2983,16 +3037,18 @@ const DEFAULT_LOADER_SETTINGS = {
     letters: {
       promptOverride: "",
       recentMessages: 8,
-      profileId: ""
+      profileId: "",
+      worldInfoEntryIds: []
     },
     stories: {
       promptOverride: "",
       recentMessages: 6,
-      profileId: ""
+      profileId: "",
+      worldInfoEntryIds: []
     }
   }
 };
-function isRecord$2(value) {
+function isRecord$3(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function finiteNumber(value, fallback) {
@@ -3002,22 +3058,28 @@ function finiteNumber(value, fallback) {
 function clamp(value, minimum, maximum, fallback) {
   return Math.min(maximum, Math.max(minimum, finiteNumber(value, fallback)));
 }
+function worldInfoEntryIds(value, fallback) {
+  if (!Array.isArray(value)) return fallback;
+  return [...new Set(value.filter((item) => typeof item === "string").map((item) => item.trim()).filter((item) => item.length > 0 && item.length <= 400))].slice(0, 100);
+}
 function featureSettings(value, fallback) {
-  const input = isRecord$2(value) ? value : {};
+  const input = isRecord$3(value) ? value : {};
   const mode = input.mode === "profile" ? "profile" : "current";
   return {
     promptOverride: typeof input.promptOverride === "string" ? input.promptOverride.slice(0, 8e3) : fallback.promptOverride,
     recentMessages: Math.round(clamp(input.recentMessages, 0, 50, fallback.recentMessages)),
     mode,
-    profileId: typeof input.profileId === "string" && input.profileId.length <= 200 ? input.profileId : fallback.profileId
+    profileId: typeof input.profileId === "string" && input.profileId.length <= 200 ? input.profileId : fallback.profileId,
+    worldInfoEntryIds: worldInfoEntryIds(input.worldInfoEntryIds, fallback.worldInfoEntryIds)
   };
 }
 function idleSettings(value, fallback) {
-  const input = isRecord$2(value) ? value : {};
+  const input = isRecord$3(value) ? value : {};
   return {
     recentMessages: Math.round(clamp(input.recentMessages, 0, 50, fallback.recentMessages)),
     mode: input.mode === "profile" ? "profile" : "current",
-    profileId: typeof input.profileId === "string" && input.profileId.length <= 200 ? input.profileId : fallback.profileId
+    profileId: typeof input.profileId === "string" && input.profileId.length <= 200 ? input.profileId : fallback.profileId,
+    worldInfoEntryIds: worldInfoEntryIds(input.worldInfoEntryIds, fallback.worldInfoEntryIds)
   };
 }
 function coordinate(value) {
@@ -3026,15 +3088,15 @@ function coordinate(value) {
   return Number.isFinite(parsed) ? Math.round(Math.min(1e4, Math.max(0, parsed))) : null;
 }
 function positionValue(value) {
-  const input = isRecord$2(value) ? value : {};
+  const input = isRecord$3(value) ? value : {};
   return { x: coordinate(input.x), y: coordinate(input.y) };
 }
 function normalizeLoaderSettings(value) {
-  const input = isRecord$2(value) ? value : {};
-  const appearance = isRecord$2(input.appearance) ? input.appearance : {};
-  const motion = isRecord$2(input.motion) ? input.motion : {};
-  const position = isRecord$2(input.position) ? input.position : {};
-  const features = isRecord$2(input.features) ? input.features : {};
+  const input = isRecord$3(value) ? value : {};
+  const appearance = isRecord$3(input.appearance) ? input.appearance : {};
+  const motion = isRecord$3(input.motion) ? input.motion : {};
+  const position = isRecord$3(input.position) ? input.position : {};
+  const features = isRecord$3(input.features) ? input.features : {};
   return {
     idlePromptOverride: typeof input.idlePromptOverride === "string" ? input.idlePromptOverride.slice(0, 8e3) : DEFAULT_LOADER_SETTINGS.idlePromptOverride,
     idle: idleSettings(input.idle, DEFAULT_LOADER_SETTINGS.idle),
@@ -3307,12 +3369,12 @@ class SpriteResident {
     this.clearSpeech();
     URL.revokeObjectURL(this.imageUrl);
   }
-  showSpeech(text) {
+  showSpeech(text2) {
     this.clearSpeech();
     const bubble = document.createElement("div");
     bubble.className = "resident-loader-speech-bubble";
     bubble.setAttribute("role", "status");
-    const cleaned = text.trim();
+    const cleaned = text2.trim();
     bubble.textContent = cleaned.length > 500 ? `${cleaned.slice(0, 500)}…` : cleaned;
     document.body.append(bubble);
     this.speechBubble = bubble;
@@ -3426,20 +3488,20 @@ class SpriteResident {
     if (this.dragMoved) this.options.onPositionChange(this.viewport(), this.point());
   };
 }
-function isRecord$1(value) {
+function isRecord$2(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function safeString(value, maximum = 200) {
   return typeof value === "string" ? value.trim().slice(0, maximum) : "";
 }
 function extractConnectionProfiles(context) {
-  if (!isRecord$1(context)) return [];
+  if (!isRecord$2(context)) return [];
   const extensionSettings = context.extensionSettings;
-  if (!isRecord$1(extensionSettings)) return [];
+  if (!isRecord$2(extensionSettings)) return [];
   const connectionManager = extensionSettings.connectionManager;
-  if (!isRecord$1(connectionManager) || !Array.isArray(connectionManager.profiles)) return [];
+  if (!isRecord$2(connectionManager) || !Array.isArray(connectionManager.profiles)) return [];
   return connectionManager.profiles.flatMap((profile) => {
-    if (!isRecord$1(profile)) return [];
+    if (!isRecord$2(profile)) return [];
     const id = safeString(profile.id);
     const name = safeString(profile.name) || id;
     if (!id || !name) return [];
@@ -3457,21 +3519,21 @@ function recordValue(record, key) {
   if (typeof key !== "string" && typeof key !== "number") return void 0;
   const collection = record.characters;
   if (Array.isArray(collection)) return collection[Number(key)];
-  if (isRecord$1(collection)) return collection[String(key)];
+  if (isRecord$2(collection)) return collection[String(key)];
   return void 0;
 }
 function getTavernIdentity(context) {
-  if (!isRecord$1(context)) return null;
+  if (!isRecord$2(context)) return null;
   const character = recordValue(context, context.characterId);
-  const directCharacter = isRecord$1(context.character) ? context.character : void 0;
-  const resolvedCharacter = isRecord$1(character) ? character : directCharacter;
-  const data = resolvedCharacter && isRecord$1(resolvedCharacter.data) ? resolvedCharacter.data : void 0;
+  const directCharacter = isRecord$2(context.character) ? context.character : void 0;
+  const resolvedCharacter = isRecord$2(character) ? character : directCharacter;
+  const data = resolvedCharacter && isRecord$2(resolvedCharacter.data) ? resolvedCharacter.data : void 0;
   const characterName = safeString(context.name2) || safeString(resolvedCharacter?.name) || safeString(data?.name);
   if (!characterName) return null;
   const avatar = safeString(resolvedCharacter?.avatar) || safeString(data?.avatar);
   const rawCharacterId = context.characterId;
   const characterKey = avatar ? `avatar:${avatar}` : rawCharacterId !== void 0 && rawCharacterId !== null ? `character-id:${String(rawCharacterId)}` : `name:${characterName}`;
-  const chatMetadata = isRecord$1(context.chatMetadata) ? context.chatMetadata : isRecord$1(context.chat_metadata) ? context.chat_metadata : void 0;
+  const chatMetadata = isRecord$2(context.chatMetadata) ? context.chatMetadata : isRecord$2(context.chat_metadata) ? context.chat_metadata : void 0;
   let liveChatId = "";
   if (typeof context.getCurrentChatId === "function") {
     try {
@@ -3502,14 +3564,14 @@ function callable(value) {
   return typeof value === "function" ? value : void 0;
 }
 function cleanGeneratedText(value) {
-  let text = "";
-  if (typeof value === "string") text = value;
-  else if (isRecord$1(value)) {
-    text = safeString(value.content, 2e4) || safeString(value.text, 2e4);
+  let text2 = "";
+  if (typeof value === "string") text2 = value;
+  else if (isRecord$2(value)) {
+    text2 = safeString(value.content, 2e4) || safeString(value.text, 2e4);
   }
-  text = text.trim().replace(/^```(?:markdown|text)?\s*/i, "").replace(/\s*```$/, "").trim();
-  if (!text) throw new Error("酒館沒有回傳文字，請檢查生成連線。");
-  return text.slice(0, 12e3);
+  text2 = text2.trim().replace(/^```(?:markdown|text)?\s*/i, "").replace(/\s*```$/, "").trim();
+  if (!text2) throw new Error("酒館沒有回傳文字，請檢查生成連線。");
+  return text2.slice(0, 12e3);
 }
 function slashQuote(value) {
   return JSON.stringify(value).replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
@@ -3544,13 +3606,73 @@ function createGenerationAdapter(options) {
         });
         return { text: cleanGeneratedText(result2), source: "current" };
       }
-      const current = isRecord$1(context) ? context : {};
+      const current = isRecord$2(context) ? context : {};
       const quiet = callable(current.generateQuietPrompt) ?? callable(findApi("generateQuietPrompt"));
       if (!quiet) throw new Error("找不到酒館生成介面，請確認目前連線或 TavernHelper。");
       const result = await quiet({ quietPrompt: input.prompt, removeReasoning: true });
       return { text: cleanGeneratedText(result), source: "current" };
     }
   };
+}
+function isRecord$1(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function text(value, maximum) {
+  return typeof value === "string" ? value.trim().slice(0, maximum) : "";
+}
+function entryLabel(entry, uid) {
+  const comment = text(entry.comment, 200);
+  if (comment) return comment;
+  const keys = Array.isArray(entry.key) ? entry.key.filter((value) => typeof value === "string" && value.trim().length > 0) : [];
+  return keys.length ? keys.join("、").slice(0, 200) : `條目 ${uid}`;
+}
+async function importWorldInfoModule() {
+  const modulePath = "/scripts/world-info.js";
+  return import(
+    /* @vite-ignore */
+    modulePath
+  );
+}
+async function loadConstantWorldInfoEntries(loadModule = importWorldInfoModule) {
+  try {
+    const module = await loadModule();
+    if (typeof module.getSortedEntries !== "function") return [];
+    const source = await module.getSortedEntries();
+    if (!Array.isArray(source)) return [];
+    const output = [];
+    const seen = /* @__PURE__ */ new Set();
+    for (const candidate of source) {
+      if (!isRecord$1(candidate) || candidate.constant !== true || candidate.disable === true) continue;
+      const content = text(candidate.content, 12e3);
+      if (!content) continue;
+      const world = text(candidate.world, 300) || "世界書";
+      const uid = String(candidate.uid ?? "").trim().slice(0, 100);
+      if (!uid) continue;
+      const id = `${world}::${uid}`;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      output.push({ id, world, uid, label: entryLabel(candidate, uid), content });
+    }
+    return output;
+  } catch (error) {
+    console.warn("[酒館桌寵] 無法讀取世界書常駐條目", error);
+    return [];
+  }
+}
+function buildSelectedWorldInfoContext(entries, selectedIds, maximumCharacters = 16e3) {
+  const selected = new Set(selectedIds);
+  const sections = [];
+  let used = 0;
+  for (const entry of entries) {
+    if (!selected.has(entry.id)) continue;
+    const section = `【${entry.world}｜${entry.label}】
+${entry.content}`;
+    const remaining = maximumCharacters - used;
+    if (remaining <= 0) break;
+    sections.push(section.slice(0, remaining));
+    used += section.length;
+  }
+  return sections.join("\n\n");
 }
 function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -3594,6 +3716,7 @@ class ResidentLoaderApp {
   activePack;
   settings = normalizeLoaderSettings({});
   panelSelectedPackId = "";
+  worldInfoEntries = [];
   unsubscribers = [];
   started = false;
   generation;
@@ -3666,6 +3789,7 @@ class ResidentLoaderApp {
       this.identity?.userName ?? "USER",
       this.identity?.characterName ?? "角色"
     );
+    this.worldInfoEntries = binding && view === "settings" ? await loadConstantWorldInfoEntries() : [];
     const nextPanel = createLoaderPanel({
       identity: this.identity,
       packs,
@@ -3676,7 +3800,8 @@ class ResidentLoaderApp {
       contextSummaries,
       idleContextSummary,
       view,
-      hasBinding: Boolean(binding)
+      hasBinding: Boolean(binding),
+      worldInfoEntries: this.worldInfoEntries
     });
     this.panel?.remove();
     this.panel = nextPanel;
@@ -3759,6 +3884,7 @@ class ResidentLoaderApp {
     this.sprite = void 0;
     this.activePack = void 0;
     this.panelSelectedPackId = "";
+    this.worldInfoEntries = [];
     if (!this.identity) {
       if (this.panel) await this.openPanel();
       return;
@@ -3900,7 +4026,12 @@ class ResidentLoaderApp {
         promptOverride: prompt.trim() === packDefault.trim() ? "" : prompt,
         recentMessages,
         mode: mode === "profile" ? "profile" : "current",
-        profileId
+        profileId,
+        worldInfoEntryIds: this.selectedWorldInfoIds(
+          panel,
+          feature,
+          this.settings.features[feature].worldInfoEntryIds
+        )
       };
     }
     const idleControl = panel.querySelector('[data-prompt="idle"]');
@@ -3911,7 +4042,12 @@ class ResidentLoaderApp {
       idle: idleControl ? {
         recentMessages: Number(panel.querySelector('[data-recent="idle"]')?.value),
         mode: panel.querySelector('[data-mode="idle"]')?.value === "profile" ? "profile" : "current",
-        profileId: panel.querySelector('[data-profile="idle"]')?.value ?? ""
+        profileId: panel.querySelector('[data-profile="idle"]')?.value ?? "",
+        worldInfoEntryIds: this.selectedWorldInfoIds(
+          panel,
+          "idle",
+          this.settings.idle.worldInfoEntryIds
+        )
       } : this.settings.idle,
       appearance: {
         desktopSizePercent: numericValue(
@@ -3941,6 +4077,12 @@ class ResidentLoaderApp {
       position: this.settings.position,
       features
     });
+  }
+  selectedWorldInfoIds(panel, feature, fallback) {
+    const controls = [...panel.querySelectorAll(
+      `[data-world-info-entry="${feature}"]`
+    )];
+    return controls.length ? controls.filter((input) => input.checked).map((input) => input.value) : fallback;
   }
   applyMotionPreset(panel, preset) {
     const values = preset === "slow" ? { frameIntervalMs: 220, walkSpeedPxPerSec: 35 } : preset === "fast" ? { frameIntervalMs: 75, walkSpeedPxPerSec: 140 } : { frameIntervalMs: 125, walkSpeedPxPerSec: 72 };
@@ -3983,7 +4125,11 @@ class ResidentLoaderApp {
         chat,
         userName: this.identity.userName,
         characterName: this.identity.characterName,
-        characterContext: extractCharacterCardContext(context)
+        characterContext: extractCharacterCardContext(context),
+        worldInfoContext: buildSelectedWorldInfoContext(
+          this.worldInfoEntries,
+          this.settings.idle.worldInfoEntryIds
+        )
       });
       const result = await this.generation.generateText({
         mode: this.settings.idle.mode,
@@ -4057,7 +4203,11 @@ class ResidentLoaderApp {
         chat,
         userName: this.identity.userName,
         characterName: this.identity.characterName,
-        characterContext: extractCharacterCardContext(context)
+        characterContext: extractCharacterCardContext(context),
+        worldInfoContext: buildSelectedWorldInfoContext(
+          this.worldInfoEntries,
+          featureSettings2.worldInfoEntryIds
+        )
       });
       const result = await this.generation.generateText({
         mode: featureSettings2.mode,

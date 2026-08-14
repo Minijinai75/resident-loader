@@ -29,8 +29,9 @@
 | Root topology and extension validator for v0.2.2 | PASS | Direct-install layout passed; 10 passed / 0 warnings / 0 failures |
 | GitHub Actions run `31808691495` | PASS | Independent v0.2.2 CI completed for commit `e443091` |
 | Public manifest, dist, and v0.2.2 ZIP | PASS | v0.2.2; native drawer/inline mount present; obsolete action absent; ZIP HTTP 200, 54,561 bytes, matching SHA-256 |
-| Compact-entry / separate-pages RED/GREEN suite | PASS | 9 files / 42 tests; no embedded settings, both generation settings live on settings page, reading pages contain no settings, TXT formatting/filenames covered |
-| `npm run package` twice for v0.3.0 | PASS | Both builds produced SHA-256 `0f159f394c26fec7ab0f7ba6d961f8a1d0bb1bf1cb54c4e2a6b94183af8a5934` |
+| Compact-entry / separate-pages RED/GREEN suite | PASS | Initial 9 files / 42 tests; no embedded settings, both generation settings live on settings page, reading pages contain no settings, TXT formatting/filenames covered |
+| ST 1.18 always-on world-info selection RED/GREEN | PASS | Adapter filters `constant` / `disable`, selection is per feature and per character, and only checked content enters Prompt; full suite 10 files / 44 tests |
+| `npm run package` twice for final v0.3.0 | PASS | Both builds produced SHA-256 `0c48e383118160b64728c2abc81f2406d7b85301d08bc611c6dffffdc2f17e90` |
 | Root topology / extension validator / hybrid contract validator | PASS | Direct install passed; extension 10/10 with 0 warnings/failures; technical contract passed hybrid route |
 | ZIP listing | PASS | Exactly `manifest.json`, `README.md`, `dist/index.js`, and `dist/style.css` |
 | Chrome against committed v0.3.0 dist | PASS | Drawer remained compact (173px, no embedded panel); separate settings page had two feature-setting sections; letter diary had TXT action and zero setting controls |

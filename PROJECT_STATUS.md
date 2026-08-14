@@ -4,13 +4,15 @@
 
 - Project: Resident Loader
 - Active task: Split the compact extension entry, full settings, letter diary, and story board into separate HTML views
-- Current phase: v0.3.0 implemented, packaged, and locally verified
+- Current phase: v0.3.0 plus read-only world-info selection implemented, packaged, and locally verified
 - Overall status: ready to publish; waiting for Mini's in-Tavern update smoke after release
 - Last updated: 2026-08-14 22:43 Asia/Taipei
 
 ## Current Goal
 
 Users install one【酒館桌寵】extension, use a compact extensions-drawer entry, open complete settings in a separate HTML page, and read persistent letters/stories in diary/board pages with TXT export.
+
+Bound characters can also choose enabled always-on world-info entries independently for daily, letter, and story generation without modifying SillyTavern lorebooks.
 
 ## Success Criteria
 

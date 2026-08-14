@@ -81,6 +81,13 @@ describe('createLoaderPanel', () => {
       },
       view: 'settings',
       hasBinding: true,
+      worldInfoEntries: [{
+        id: '景和設定::3',
+        world: '景和設定',
+        uid: '3',
+        label: '住所',
+        content: '簷下的住所設定。',
+      }],
     });
 
     expect(panel.querySelector<HTMLTextAreaElement>('[data-prompt="idle"]')?.value).toBe(
@@ -103,6 +110,9 @@ describe('createLoaderPanel', () => {
     expect(panel.querySelector('.resident-loader-history')).toBeNull();
     expect(panel.querySelector('.resident-loader-panel-header [data-action="save-settings"]')?.textContent).toContain('儲存設定');
     expect(panel.textContent).toContain('切換角色卡時，桌寵會自動跟著切換');
+    expect(panel.querySelectorAll('[data-world-info-entry]')).toHaveLength(3);
+    expect(panel.textContent).toContain('世界書常駐條目');
+    expect(panel.textContent).toContain('景和設定｜住所');
   });
 
   it('renders imported names as text rather than executable HTML', () => {

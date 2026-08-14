@@ -3,6 +3,7 @@ import type { HistoryRecord } from './repository';
 import type { LoaderSettings, GenerationFeature } from './settings';
 import type { ConnectionProfileSummary, TavernIdentity } from './st-adapter';
 import type { ConversationSummary } from './context-builder';
+import type { WorldInfoEntrySummary } from './world-info-adapter';
 
 export interface LoaderPanelModel {
   identity: TavernIdentity | null;
@@ -15,6 +16,7 @@ export interface LoaderPanelModel {
   idleContextSummary?: ConversationSummary;
   view: 'settings' | GenerationFeature;
   hasBinding: boolean;
+  worldInfoEntries?: WorldInfoEntrySummary[];
 }
 
 function element<K extends keyof HTMLElementTagNameMap>(
@@ -61,6 +63,53 @@ function rangeControl(
   const wrapper = field(label, input);
   wrapper.append(output);
   return wrapper;
+}
+
+function worldInfoSelection(
+  feature: GenerationFeature | 'idle',
+  selectedIds: string[],
+  entries: WorldInfoEntrySummary[],
+  hasBinding: boolean,
+): HTMLElement {
+  const selected = new Set(selectedIds);
+  const details = element('details', 'resident-loader-world-info');
+  const selectedCount = entries.filter((entry) => selected.has(entry.id)).length;
+  details.append(element(
+    'summary',
+    '',
+    `世界書常駐條目（已選 ${selectedCount}／${entries.length}）`,
+  ));
+  details.append(element(
+    'p',
+    'resident-loader-help',
+    '只列出酒館判定為常駐且未停用的條目；勾選後才會加入這個功能的 Prompt。',
+  ));
+  if (!hasBinding) {
+    details.append(element('p', 'resident-loader-empty', '先把桌寵包綁定目前角色，才能選擇角色正在使用的世界書條目。'));
+    return details;
+  }
+  if (entries.length === 0) {
+    details.append(element('p', 'resident-loader-empty', '目前角色沒有可選的世界書常駐條目。'));
+    return details;
+  }
+  const list = element('div', 'resident-loader-world-info-list');
+  for (const entry of entries) {
+    const row = element('label', 'resident-loader-world-info-row');
+    const checkbox = element('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = entry.id;
+    checkbox.checked = selected.has(entry.id);
+    checkbox.dataset.worldInfoEntry = feature;
+    const copy = element('span');
+    copy.append(
+      element('strong', '', `${entry.world}｜${entry.label}`),
+      element('small', '', `${entry.content.length} 字 · ${entry.content.slice(0, 100)}${entry.content.length > 100 ? '…' : ''}`),
+    );
+    row.append(checkbox, copy);
+    list.append(row);
+  }
+  details.append(list);
+  return details;
 }
 
 function packSelector(model: LoaderPanelModel): HTMLElement {
@@ -143,6 +192,8 @@ function idlePromptSection(
   pack: ImportedResidentPack | undefined,
   profilesList: ConnectionProfileSummary[],
   contextSummary: ConversationSummary,
+  worldInfoEntries: WorldInfoEntrySummary[],
+  hasBinding: boolean,
 ): HTMLElement {
   const section = element('section', 'resident-loader-section');
   section.append(element('h3', '', '日常陪伴 Prompt'));
@@ -199,6 +250,7 @@ function idlePromptSection(
     element('p', 'resident-loader-help', '生成時會帶入目前角色卡的描述、性格與情境。只有按下按鈕才生成；自動生成目前關閉，也不會新增聊天樓層。'),
     controls,
     contextBox,
+    worldInfoSelection('idle', settings.idle.worldInfoEntryIds, worldInfoEntries, hasBinding),
   );
   const actions = element('div', 'resident-loader-actions');
   const generate = button('讓桌寵說一句', 'generate:idle');
@@ -278,6 +330,12 @@ function featureSettingsSection(
   preview.dataset.contextPreview = feature;
   contextBox.append(summaryLabel, preview);
   section.append(contextBox);
+  section.append(worldInfoSelection(
+    feature,
+    featureSettings.worldInfoEntryIds,
+    model.worldInfoEntries ?? [],
+    model.hasBinding,
+  ));
 
   const actions = element('div', 'resident-loader-actions');
   const generate = button(
@@ -372,6 +430,8 @@ export function createLoaderPanel(model: LoaderPanelModel): HTMLElement {
         selectedPack,
         model.profiles,
         model.idleContextSummary ?? { messageCount: 0, characterCount: 0, preview: '' },
+        model.worldInfoEntries ?? [],
+        model.hasBinding,
       ),
       featureSettingsSection('letters', model, selectedPack),
       featureSettingsSection('stories', model, selectedPack),

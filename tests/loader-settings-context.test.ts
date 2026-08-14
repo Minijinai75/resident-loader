@@ -33,9 +33,19 @@ describe('normalizeLoaderSettings', () => {
 
   it('normalizes manual daily-companion context and connection settings', () => {
     const settings = normalizeLoaderSettings({
-      idle: { recentMessages: 5, mode: 'profile', profileId: 'daily' },
+      idle: {
+        recentMessages: 5,
+        mode: 'profile',
+        profileId: 'daily',
+        worldInfoEntryIds: ['book::1', '', 'book::1', 7],
+      },
     });
-    expect(settings.idle).toMatchObject({ recentMessages: 5, mode: 'profile', profileId: 'daily' });
+    expect(settings.idle).toMatchObject({
+      recentMessages: 5,
+      mode: 'profile',
+      profileId: 'daily',
+      worldInfoEntryIds: ['book::1'],
+    });
   });
 
   it('uses visible per-feature prompt overrides and accepts zero recent floors', () => {
@@ -46,6 +56,7 @@ describe('normalizeLoaderSettings', () => {
           recentMessages: 0,
           mode: 'profile',
           profileId: 'writer',
+          worldInfoEntryIds: ['world::9'],
         },
       },
     });
@@ -55,6 +66,7 @@ describe('normalizeLoaderSettings', () => {
       recentMessages: 0,
       mode: 'profile',
       profileId: 'writer',
+      worldInfoEntryIds: ['world::9'],
     });
     expect(settings.features.letters).toEqual(DEFAULT_LOADER_SETTINGS.features.letters);
   });
@@ -131,10 +143,14 @@ describe('buildFeaturePrompt', () => {
       userName: 'Mini',
       characterName: '景和',
       characterContext: '角色描述：沉著溫柔。',
+      worldInfoContext: '【景和設定｜住所】\n簷下的住所設定。',
     });
     expect(prompt).toContain('目前綁定角色卡資料');
     expect(prompt).toContain('沉著溫柔');
+    expect(prompt).toContain('勾選的世界書常駐條目');
+    expect(prompt).toContain('簷下的住所設定');
     expect(prompt.indexOf('角色卡資料')).toBeLessThan(prompt.indexOf('最近對話'));
+    expect(prompt.indexOf('世界書常駐條目')).toBeLessThan(prompt.indexOf('最近對話'));
   });
 });
 

@@ -18,6 +18,7 @@ export function buildFeaturePrompt(input: {
   userName: string;
   characterName: string;
   characterContext?: string;
+  worldInfoContext?: string;
 }): string {
   const basePrompt = input.promptOverride.trim() || input.packPrompt.trim();
   const summary = summarizeRecentConversation(
@@ -29,6 +30,8 @@ export function buildFeaturePrompt(input: {
   const sections = [basePrompt];
   const characterContext = input.characterContext?.trim().slice(0, 8_000);
   if (characterContext) sections.push(`目前綁定角色卡資料：\n${characterContext}`);
+  const worldInfoContext = input.worldInfoContext?.trim().slice(0, 16_000);
+  if (worldInfoContext) sections.push(`USER 勾選的世界書常駐條目：\n${worldInfoContext}`);
   if (!summary.preview) return sections.join('\n\n');
   const budgetedContext =
     summary.preview.length > 12_000 ? `…${summary.preview.slice(-12_000)}` : summary.preview;
