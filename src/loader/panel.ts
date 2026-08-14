@@ -66,6 +66,11 @@ function rangeControl(
 function packSelector(model: LoaderPanelModel): HTMLElement {
   const section = element('section', 'resident-loader-section');
   section.append(element('h3', '', '角色包與綁定'));
+  section.append(element(
+    'p',
+    'resident-loader-help',
+    '每張角色卡可各自綁定一個桌寵包；切換角色卡時，桌寵會自動跟著切換。沒有綁定的角色不會沿用上一位的桌寵。',
+  ));
 
   const importInput = element('input');
   importInput.type = 'file';
@@ -129,7 +134,7 @@ function appearanceSection(settings: LoaderSettings): HTMLElement {
     rangeControl('畫面移動速度（數字越大走得越快）', 'walkSpeedPxPerSec', settings.motion.walkSpeedPxPerSec, 10, 500),
   );
   advanced.append(grid);
-  section.append(advanced, button('儲存外觀與速度', 'save-settings'), button('重設桌寵位置', 'reset-position'));
+  section.append(advanced, button('重設桌寵位置', 'reset-position'));
   return section;
 }
 
@@ -203,15 +208,15 @@ function idlePromptSection(
   return section;
 }
 
-function featureSection(
+function featureSettingsSection(
   feature: GenerationFeature,
   model: LoaderPanelModel,
   pack: ImportedResidentPack | undefined,
 ): HTMLElement {
   const featureSettings = model.settings.features[feature];
-  const label = feature === 'letters' ? '角色來信' : '對話番外';
+  const label = feature === 'letters' ? '角色來信設定' : '對話番外設定';
   const section = element('section', 'resident-loader-section resident-loader-feature');
-  section.dataset.feature = feature;
+  section.dataset.featureSettings = feature;
   section.append(element('h3', '', label));
 
   const prompt = element('textarea');
@@ -283,17 +288,34 @@ function featureSection(
   actions.append(button('恢復角色包預設 Prompt', `reset-prompt:${feature}`), generate);
   section.append(actions);
 
-  const history = element('div', 'resident-loader-history');
-  history.append(element('h4', '', `${label}紀錄`));
+  return section;
+}
+
+function historyView(feature: GenerationFeature, model: LoaderPanelModel): HTMLElement {
+  const isLetters = feature === 'letters';
+  const section = element(
+    'section',
+    isLetters
+      ? 'resident-loader-history resident-loader-diary-list'
+      : 'resident-loader-history resident-loader-board-list',
+  );
+  section.dataset.historyView = feature;
   const records = model.histories[feature];
   if (records.length === 0) {
-    history.append(element('p', 'resident-loader-empty', '這段聊天目前還沒有生成紀錄。'));
+    section.append(element(
+      'p',
+      'resident-loader-empty',
+      isLetters ? '這段聊天目前還沒有收到來信。' : '這段聊天目前還沒有生成番外。',
+    ));
   }
   for (const record of records) {
-    const article = element('article', 'resident-loader-record');
+    const article = element(
+      'article',
+      `resident-loader-record ${isLetters ? 'resident-loader-diary-entry' : 'resident-loader-board-post'}`,
+    );
     article.dataset.historyId = String(record.id);
     const time = new Date(record.createdAt).toLocaleString('zh-TW');
-    article.append(element('p', 'resident-loader-record-meta', `${time} · ${record.apiSource}`));
+    article.append(element('time', 'resident-loader-record-meta', time));
     const content = element('div', 'resident-loader-record-content', record.content);
     const recordActions = element('div', 'resident-loader-actions');
     const copy = button('複製', 'copy-history');
@@ -302,14 +324,13 @@ function featureSection(
     remove.dataset.historyId = String(record.id);
     recordActions.append(copy, remove);
     article.append(content, recordActions);
-    history.append(article);
+    section.append(article);
   }
-  section.append(history);
   return section;
 }
 
 export function createLoaderPanel(model: LoaderPanelModel): HTMLElement {
-  const panel = element('section', 'resident-loader-panel');
+  const panel = element('section', `resident-loader-panel resident-loader-page resident-loader-${model.view}-page`);
   panel.id = 'resident-loader-panel';
   panel.setAttribute('role', 'dialog');
   panel.setAttribute('aria-modal', 'true');
@@ -317,14 +338,20 @@ export function createLoaderPanel(model: LoaderPanelModel): HTMLElement {
 
   const header = element('header', 'resident-loader-panel-header');
   const titleText = model.view === 'letters'
-    ? '角色來信紀錄'
+    ? '角色來信日記'
     : model.view === 'stories'
-      ? '對話番外紀錄'
-      : '酒館桌寵';
+      ? '對話番外留言板'
+      : '酒館桌寵設定';
   const title = element('h2', '', titleText);
   title.id = 'resident-loader-title';
   const headerActions = element('div', 'resident-loader-actions');
-  if (model.view !== 'settings') headerActions.append(button('返回設定', 'back-settings'));
+  if (model.view === 'settings') {
+    headerActions.append(button('儲存設定', 'save-settings'));
+  } else {
+    const download = button('下載 TXT', 'download-history');
+    download.dataset.feature = model.view;
+    headerActions.append(download);
+  }
   headerActions.append(button('關閉', 'close'));
   header.append(title, headerActions);
 
@@ -346,9 +373,11 @@ export function createLoaderPanel(model: LoaderPanelModel): HTMLElement {
         model.profiles,
         model.idleContextSummary ?? { messageCount: 0, characterCount: 0, preview: '' },
       ),
+      featureSettingsSection('letters', model, selectedPack),
+      featureSettingsSection('stories', model, selectedPack),
     );
   } else {
-    body.append(featureSection(model.view, model, selectedPack));
+    body.append(historyView(model.view, model));
   }
   panel.append(header, status, body);
   return panel;

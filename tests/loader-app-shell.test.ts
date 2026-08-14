@@ -24,7 +24,7 @@ describe('ResidentLoaderApp shell', () => {
     expect(document.querySelector('#resident-loader-launcher')).toBeNull();
   });
 
-  it('mounts the settings panel inside the drawer when the header is expanded', async () => {
+  it('opens settings as a separate HTML overlay instead of filling the extensions drawer', async () => {
     const drawer = document.createElement('div');
     drawer.id = 'extensions_settings2';
     document.body.append(drawer);
@@ -32,9 +32,12 @@ describe('ResidentLoaderApp shell', () => {
     await app.start();
 
     drawer.querySelector<HTMLElement>('.inline-drawer-toggle')?.click();
+    expect(drawer.querySelector('#resident-loader-panel')).toBeNull();
+
+    drawer.querySelector<HTMLButtonElement>('[data-action="open-settings"]')?.click();
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    expect(drawer.querySelector('.inline-drawer-content #resident-loader-panel')).not.toBeNull();
-    expect(document.querySelector('#resident-loader-panel')?.classList.contains('resident-loader-panel-inline')).toBe(true);
+    expect(drawer.querySelector('#resident-loader-panel')).toBeNull();
+    expect(document.body.querySelector('#resident-loader-panel')?.classList.contains('resident-loader-settings-page')).toBe(true);
   });
 });

@@ -41,3 +41,13 @@
 - Published: implementation commit `e443091`; GitHub Actions run `31808691495` passed. Public manifest reports `酒館桌寵` v0.2.2; release ZIP returned HTTP 200, 54,561 bytes, and SHA-256 `13b80388c830a4d1e488686dd4c26ea09aad2c790e85594f1fedc2481a6dbfc0`.
 - Public dist check: native drawer event and inline-panel mount are present; the obsolete `open-settings` action is absent.
 - Remaining: Mini updates/reloads SillyTavern and expands【酒館桌寵】for the real runtime smoke.
+
+## 2026-08-14 22:43
+
+- Product correction: The extensions drawer must never contain the full settings form. It now keeps only five compact actions: settings, pet on, pet off, letter diary, and story board.
+- HTML views: Settings opens as a standalone overlay and owns all import/binding/appearance/Prompt/context/profile/generation controls. Letter history is a warm diary page; story history is a message-board page. Reading pages contain dates, generated content, copy/delete actions, and TXT download, but no Prompt or connection settings.
+- Binding clarification: Each character card has its own pack binding and settings. `CHAT_CHANGED` unloads the old sprite and loads the next character's binding; an unbound character never inherits the previous pet. Histories remain character + chat + feature scoped.
+- RED/GREEN: Updated entry, shell, and panel contracts and added TXT-export tests. Expected failures covered the old inline panel, mixed settings/history pages, and missing export module; all passed after implementation.
+- Verification: 9 test files / 42 tests passed; build and deterministic v0.3.0 package passed twice; direct-install topology, hybrid contract, and extension validator 10/10 passed. ZIP contains only manifest, README, JS, and CSS; SHA-256 `0f159f394c26fec7ab0f7ba6d961f8a1d0bb1bf1cb54c4e2a6b94183af8a5934`.
+- Browser smoke: Real Chrome loaded committed dist. Expanded drawer was 173px tall with no embedded panel; settings opened outside the drawer with both feature-setting sections; letter diary opened with TXT action and zero setting sections.
+- Next: Commit/push, publish v0.3.0, verify public manifest/dist/ZIP, and update workshop download link.

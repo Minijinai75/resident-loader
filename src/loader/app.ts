@@ -6,6 +6,7 @@ import {
 } from './context-builder';
 import { importResidentPack, type ImportedResidentPack } from './pack-importer';
 import { createExtensionEntry } from './extension-entry';
+import { buildHistoryText, historyFilename } from './history-export';
 import { createLoaderPanel } from './panel';
 import { createPetQuickMenu } from './pet-menu';
 import {
@@ -56,7 +57,6 @@ export class ResidentLoaderApp {
   private extensionEntry?: HTMLElement;
   private petMenu?: HTMLElement;
   private panel?: HTMLElement;
-  private panelHost?: HTMLElement;
   private panelView: 'settings' | GenerationFeature = 'settings';
   private petVisible = true;
   private identity: TavernIdentity | null = null;
@@ -99,11 +99,7 @@ export class ResidentLoaderApp {
     this.repository = undefined;
   }
 
-  async openPanel(
-    view: 'settings' | GenerationFeature = this.panelView,
-    requestedHost?: HTMLElement | null,
-  ): Promise<void> {
-    if (requestedHost !== undefined) this.panelHost = requestedHost ?? undefined;
+  async openPanel(view: 'settings' | GenerationFeature = this.panelView): Promise<void> {
     this.panelView = view;
     const repository = this.requireRepository();
     const packs = await repository.listPacks();
@@ -166,15 +162,7 @@ export class ResidentLoaderApp {
     });
     this.panel?.remove();
     this.panel = nextPanel;
-    if (this.panelHost?.isConnected) {
-      nextPanel.classList.add('resident-loader-panel-inline');
-      nextPanel.setAttribute('role', 'region');
-      nextPanel.removeAttribute('aria-modal');
-      this.panelHost.replaceChildren(nextPanel);
-    } else {
-      this.panelHost = undefined;
-      document.body.append(nextPanel);
-    }
+    document.body.append(nextPanel);
     this.wirePanel(nextPanel);
     nextPanel.querySelector<HTMLElement>('[data-action="close"]')?.focus();
   }
@@ -187,18 +175,22 @@ export class ResidentLoaderApp {
   private mountExtensionEntry(): void {
     this.extensionEntry?.remove();
     const entry = createExtensionEntry();
-    entry.addEventListener('resident-loader:drawer-open', () => {
+    const openFromEntry = (view: 'settings' | GenerationFeature): void => {
       const status = entry.querySelector<HTMLElement>('[data-entry-status]');
-      const host = entry.querySelector<HTMLElement>('[data-panel-host]');
-      if (this.panel?.isConnected && this.panelHost === host) return;
-      if (status) status.textContent = '正在開啟桌寵設定…';
-      void this.openPanel('settings', host).then(() => {
+      if (status) status.textContent = '正在開啟頁面…';
+      void this.openPanel(view).then(() => {
         if (status) status.textContent = '';
       }).catch((error) => {
-        console.error('[酒館桌寵] 無法開啟設定', error);
-        if (status) status.textContent = `設定開啟失敗：${error instanceof Error ? error.message : String(error)}`;
+        console.error('[酒館桌寵] 無法開啟頁面', error);
+        if (status) status.textContent = `頁面開啟失敗：${error instanceof Error ? error.message : String(error)}`;
       });
-    });
+    };
+    entry.querySelector<HTMLButtonElement>('[data-action="open-settings"]')
+      ?.addEventListener('click', () => openFromEntry('settings'));
+    entry.querySelector<HTMLButtonElement>('[data-action="open-letters"]')
+      ?.addEventListener('click', () => openFromEntry('letters'));
+    entry.querySelector<HTMLButtonElement>('[data-action="open-stories"]')
+      ?.addEventListener('click', () => openFromEntry('stories'));
     entry.querySelector<HTMLButtonElement>('[data-action="show-pet"]')
       ?.addEventListener('click', () => this.setPetVisible(true));
     entry.querySelector<HTMLButtonElement>('[data-action="hide-pet"]')
@@ -226,7 +218,7 @@ export class ResidentLoaderApp {
     const closeAndOpen = (view: GenerationFeature): void => {
       this.petMenu?.remove();
       this.petMenu = undefined;
-      void this.openPanel(view, null);
+      void this.openPanel(view);
     };
     const menu = createPetQuickMenu({
       openLetters: () => closeAndOpen('letters'),
@@ -297,7 +289,6 @@ export class ResidentLoaderApp {
     panel.querySelector<HTMLButtonElement>('[data-action="close"]')?.addEventListener('click', () => {
       panel.remove();
       if (this.panel === panel) this.panel = undefined;
-      this.panelHost = undefined;
     });
 
     panel.querySelector<HTMLInputElement>('[data-action="import"]')?.addEventListener('change', (event) => {
@@ -316,9 +307,11 @@ export class ResidentLoaderApp {
     panel.querySelector<HTMLButtonElement>('[data-action="unbind"]')?.addEventListener('click', () => {
       void this.unbindCurrentCharacter();
     });
-    panel.querySelector<HTMLButtonElement>('[data-action="back-settings"]')?.addEventListener('click', () => {
-      void this.openPanel('settings');
-    });
+    panel.querySelector<HTMLButtonElement>('[data-action="download-history"]')
+      ?.addEventListener('click', (event) => {
+        const feature = (event.currentTarget as HTMLButtonElement).dataset.feature;
+        if (feature === 'letters' || feature === 'stories') void this.downloadHistory(feature);
+      });
     panel.querySelector<HTMLButtonElement>('[data-action="save-settings"]')?.addEventListener('click', () => {
       void this.saveSettings(panel, true);
     });
@@ -624,7 +617,12 @@ export class ResidentLoaderApp {
         apiSource: result.source,
       });
       await this.openPanel();
-      this.setStatus('生成完成，已保存在下方歷史紀錄。', 'success');
+      this.setStatus(
+        feature === 'letters'
+          ? '生成完成，已保存到角色來信日記。'
+          : '生成完成，已保存到對話番外留言板。',
+        'success',
+      );
     } catch (error) {
       this.setStatus(error instanceof Error ? error.message : '生成失敗，沒有寫入空紀錄。', 'error');
     }
@@ -641,6 +639,30 @@ export class ResidentLoaderApp {
     } catch {
       this.setStatus('瀏覽器沒有開放剪貼簿，請手動選取內容。', 'error');
     }
+  }
+
+  private async downloadHistory(feature: GenerationFeature): Promise<void> {
+    if (!this.identity) return this.setStatus('請先打開一個角色聊天。', 'error');
+    const records = await this.requireRepository().listHistory({
+      characterKey: this.identity.characterKey,
+      chatKey: this.identity.chatKey,
+      feature,
+    });
+    if (records.length === 0) return this.setStatus('目前沒有可以下載的紀錄。', 'error');
+    const blob = new Blob(
+      ['\uFEFF', buildHistoryText(records, feature, this.identity.characterName)],
+      { type: 'text/plain;charset=utf-8' },
+    );
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = historyFilename(this.identity.characterName, feature);
+    anchor.hidden = true;
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    this.setStatus('TXT 已開始下載。', 'success');
   }
 
   private async deleteHistory(button: HTMLButtonElement): Promise<void> {

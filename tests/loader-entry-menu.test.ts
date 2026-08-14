@@ -5,14 +5,17 @@ import { createExtensionEntry } from '../src/loader/extension-entry';
 import { createPetQuickMenu } from '../src/loader/pet-menu';
 
 describe('酒館桌寵 extension entry', () => {
-  it('uses SillyTavern native inline-drawer structure with explicit pet on and off actions', () => {
+  it('keeps the SillyTavern drawer compact and exposes separate page entrances', () => {
     const entry = createExtensionEntry();
     expect(entry.classList.contains('inline-drawer')).toBe(true);
     expect(entry.querySelector('.inline-drawer-toggle.inline-drawer-header')?.textContent).toContain('酒館桌寵');
     expect(entry.querySelector('.inline-drawer-content')).not.toBeNull();
-    expect(entry.querySelector('[data-action="open-settings"]')).toBeNull();
+    expect(entry.querySelector('[data-action="open-settings"]')).not.toBeNull();
     expect(entry.querySelector('[data-action="show-pet"]')).not.toBeNull();
     expect(entry.querySelector('[data-action="hide-pet"]')).not.toBeNull();
+    expect(entry.querySelector('[data-action="open-letters"]')).not.toBeNull();
+    expect(entry.querySelector('[data-action="open-stories"]')).not.toBeNull();
+    expect(entry.querySelector('[data-panel-host]')).toBeNull();
     expect(entry.textContent).not.toContain('Resident Loader｜共用桌寵');
   });
 

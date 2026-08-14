@@ -2566,20 +2566,22 @@ function createExtensionEntry() {
   const content = document.createElement("div");
   content.className = "inline-drawer-content resident-loader-entry-body";
   const description = document.createElement("p");
-  description.textContent = "匯入角色包、調整設定，或開啟與關閉目前角色的桌寵。";
+  description.textContent = "這裡只放快捷入口；完整設定與紀錄會在獨立頁面開啟。";
   const actions = document.createElement("div");
   actions.className = "resident-loader-entry-actions";
+  const settings = actionButton("開啟桌寵設定", "open-settings");
+  settings.classList.add("resident-loader-entry-button-primary");
   actions.append(
+    settings,
     actionButton("開啟桌寵", "show-pet"),
-    actionButton("關閉桌寵", "hide-pet")
+    actionButton("關閉桌寵", "hide-pet"),
+    actionButton("角色來信日記", "open-letters"),
+    actionButton("對話番外留言板", "open-stories")
   );
   const status = document.createElement("p");
   status.className = "resident-loader-entry-status";
   status.dataset.entryStatus = "true";
-  const panelHost = document.createElement("div");
-  panelHost.className = "resident-loader-inline-panel-host";
-  panelHost.dataset.panelHost = "true";
-  content.append(description, actions, status, panelHost);
+  content.append(description, actions, status);
   entry.append(toggle, content);
   const setOpen = (open) => {
     toggle.classList.toggle("open", open);
@@ -2600,6 +2602,35 @@ function createExtensionEntry() {
     toggleOpen();
   });
   return entry;
+}
+function historyTitle(feature) {
+  return feature === "letters" ? "角色來信日記" : "對話番外";
+}
+function formatTime(timestamp) {
+  return new Intl.DateTimeFormat("zh-TW", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    hour12: false
+  }).format(new Date(timestamp));
+}
+function buildHistoryText(records, feature, characterName) {
+  const ordered = [...records].sort((left, right) => left.createdAt - right.createdAt);
+  const sections = ordered.map((record) => [
+    `【${formatTime(record.createdAt)}】`,
+    record.content.trim()
+  ].join("\n"));
+  return [
+    `${characterName}｜${historyTitle(feature)}`,
+    `共 ${ordered.length} 筆`,
+    "",
+    sections.join("\n\n────────────────────\n\n"),
+    ""
+  ].join("\n");
+}
+function historyFilename(characterName, feature) {
+  const safeName = characterName.replace(/[<>:"/\\|?*\u0000-\u001F]/g, "").replace(/[. ]+$/g, "").trim() || "角色";
+  const suffix = feature === "letters" ? "來信日記" : "對話番外";
+  return `${safeName}－${suffix}.txt`;
 }
 function element(tagName, className, text) {
   const node = document.createElement(tagName);
@@ -2635,6 +2666,11 @@ function rangeControl(label, key, value, minimum, maximum, step = 1) {
 function packSelector(model) {
   const section = element("section", "resident-loader-section");
   section.append(element("h3", "", "角色包與綁定"));
+  section.append(element(
+    "p",
+    "resident-loader-help",
+    "每張角色卡可各自綁定一個桌寵包；切換角色卡時，桌寵會自動跟著切換。沒有綁定的角色不會沿用上一位的桌寵。"
+  ));
   const importInput = element("input");
   importInput.type = "file";
   importInput.accept = ".zip,application/zip";
@@ -2694,7 +2730,7 @@ function appearanceSection(settings) {
     rangeControl("畫面移動速度（數字越大走得越快）", "walkSpeedPxPerSec", settings.motion.walkSpeedPxPerSec, 10, 500)
   );
   advanced.append(grid);
-  section.append(advanced, button("儲存外觀與速度", "save-settings"), button("重設桌寵位置", "reset-position"));
+  section.append(advanced, button("重設桌寵位置", "reset-position"));
   return section;
 }
 function idlePromptSection(settings, pack, profilesList, contextSummary) {
@@ -2758,11 +2794,11 @@ function idlePromptSection(settings, pack, profilesList, contextSummary) {
   section.append(actions);
   return section;
 }
-function featureSection(feature, model, pack) {
+function featureSettingsSection(feature, model, pack) {
   const featureSettings2 = model.settings.features[feature];
-  const label = feature === "letters" ? "角色來信" : "對話番外";
+  const label = feature === "letters" ? "角色來信設定" : "對話番外設定";
   const section = element("section", "resident-loader-section resident-loader-feature");
-  section.dataset.feature = feature;
+  section.dataset.featureSettings = feature;
   section.append(element("h3", "", label));
   const prompt = element("textarea");
   prompt.rows = 6;
@@ -2826,17 +2862,31 @@ function featureSection(feature, model, pack) {
   generate.disabled = !model.identity || !pack;
   actions.append(button("恢復角色包預設 Prompt", `reset-prompt:${feature}`), generate);
   section.append(actions);
-  const history = element("div", "resident-loader-history");
-  history.append(element("h4", "", `${label}紀錄`));
+  return section;
+}
+function historyView(feature, model) {
+  const isLetters = feature === "letters";
+  const section = element(
+    "section",
+    isLetters ? "resident-loader-history resident-loader-diary-list" : "resident-loader-history resident-loader-board-list"
+  );
+  section.dataset.historyView = feature;
   const records = model.histories[feature];
   if (records.length === 0) {
-    history.append(element("p", "resident-loader-empty", "這段聊天目前還沒有生成紀錄。"));
+    section.append(element(
+      "p",
+      "resident-loader-empty",
+      isLetters ? "這段聊天目前還沒有收到來信。" : "這段聊天目前還沒有生成番外。"
+    ));
   }
   for (const record of records) {
-    const article = element("article", "resident-loader-record");
+    const article = element(
+      "article",
+      `resident-loader-record ${isLetters ? "resident-loader-diary-entry" : "resident-loader-board-post"}`
+    );
     article.dataset.historyId = String(record.id);
     const time = new Date(record.createdAt).toLocaleString("zh-TW");
-    article.append(element("p", "resident-loader-record-meta", `${time} · ${record.apiSource}`));
+    article.append(element("time", "resident-loader-record-meta", time));
     const content = element("div", "resident-loader-record-content", record.content);
     const recordActions = element("div", "resident-loader-actions");
     const copy = button("複製", "copy-history");
@@ -2845,23 +2895,28 @@ function featureSection(feature, model, pack) {
     remove.dataset.historyId = String(record.id);
     recordActions.append(copy, remove);
     article.append(content, recordActions);
-    history.append(article);
+    section.append(article);
   }
-  section.append(history);
   return section;
 }
 function createLoaderPanel(model) {
-  const panel = element("section", "resident-loader-panel");
+  const panel = element("section", `resident-loader-panel resident-loader-page resident-loader-${model.view}-page`);
   panel.id = "resident-loader-panel";
   panel.setAttribute("role", "dialog");
   panel.setAttribute("aria-modal", "true");
   panel.setAttribute("aria-labelledby", "resident-loader-title");
   const header = element("header", "resident-loader-panel-header");
-  const titleText = model.view === "letters" ? "角色來信紀錄" : model.view === "stories" ? "對話番外紀錄" : "酒館桌寵";
+  const titleText = model.view === "letters" ? "角色來信日記" : model.view === "stories" ? "對話番外留言板" : "酒館桌寵設定";
   const title = element("h2", "", titleText);
   title.id = "resident-loader-title";
   const headerActions = element("div", "resident-loader-actions");
-  if (model.view !== "settings") headerActions.append(button("返回設定", "back-settings"));
+  if (model.view === "settings") {
+    headerActions.append(button("儲存設定", "save-settings"));
+  } else {
+    const download = button("下載 TXT", "download-history");
+    download.dataset.feature = model.view;
+    headerActions.append(download);
+  }
   headerActions.append(button("關閉", "close"));
   header.append(title, headerActions);
   const identity = model.identity ? `目前角色：${model.identity.characterName}` : "請先打開一個角色聊天，再進行綁定。";
@@ -2878,10 +2933,12 @@ function createLoaderPanel(model) {
         selectedPack,
         model.profiles,
         model.idleContextSummary ?? { messageCount: 0, characterCount: 0, preview: "" }
-      )
+      ),
+      featureSettingsSection("letters", model, selectedPack),
+      featureSettingsSection("stories", model, selectedPack)
     );
   } else {
-    body.append(featureSection(model.view, model, selectedPack));
+    body.append(historyView(model.view, model));
   }
   panel.append(header, status, body);
   return panel;
@@ -3531,7 +3588,6 @@ class ResidentLoaderApp {
   extensionEntry;
   petMenu;
   panel;
-  panelHost;
   panelView = "settings";
   petVisible = true;
   identity = null;
@@ -3567,8 +3623,7 @@ class ResidentLoaderApp {
     this.repository?.close();
     this.repository = void 0;
   }
-  async openPanel(view = this.panelView, requestedHost) {
-    if (requestedHost !== void 0) this.panelHost = requestedHost ?? void 0;
+  async openPanel(view = this.panelView) {
     this.panelView = view;
     const repository = this.requireRepository();
     const packs = await repository.listPacks();
@@ -3625,15 +3680,7 @@ class ResidentLoaderApp {
     });
     this.panel?.remove();
     this.panel = nextPanel;
-    if (this.panelHost?.isConnected) {
-      nextPanel.classList.add("resident-loader-panel-inline");
-      nextPanel.setAttribute("role", "region");
-      nextPanel.removeAttribute("aria-modal");
-      this.panelHost.replaceChildren(nextPanel);
-    } else {
-      this.panelHost = void 0;
-      document.body.append(nextPanel);
-    }
+    document.body.append(nextPanel);
     this.wirePanel(nextPanel);
     nextPanel.querySelector('[data-action="close"]')?.focus();
   }
@@ -3644,18 +3691,19 @@ class ResidentLoaderApp {
   mountExtensionEntry() {
     this.extensionEntry?.remove();
     const entry = createExtensionEntry();
-    entry.addEventListener("resident-loader:drawer-open", () => {
+    const openFromEntry = (view) => {
       const status = entry.querySelector("[data-entry-status]");
-      const host2 = entry.querySelector("[data-panel-host]");
-      if (this.panel?.isConnected && this.panelHost === host2) return;
-      if (status) status.textContent = "正在開啟桌寵設定…";
-      void this.openPanel("settings", host2).then(() => {
+      if (status) status.textContent = "正在開啟頁面…";
+      void this.openPanel(view).then(() => {
         if (status) status.textContent = "";
       }).catch((error) => {
-        console.error("[酒館桌寵] 無法開啟設定", error);
-        if (status) status.textContent = `設定開啟失敗：${error instanceof Error ? error.message : String(error)}`;
+        console.error("[酒館桌寵] 無法開啟頁面", error);
+        if (status) status.textContent = `頁面開啟失敗：${error instanceof Error ? error.message : String(error)}`;
       });
-    });
+    };
+    entry.querySelector('[data-action="open-settings"]')?.addEventListener("click", () => openFromEntry("settings"));
+    entry.querySelector('[data-action="open-letters"]')?.addEventListener("click", () => openFromEntry("letters"));
+    entry.querySelector('[data-action="open-stories"]')?.addEventListener("click", () => openFromEntry("stories"));
     entry.querySelector('[data-action="show-pet"]')?.addEventListener("click", () => this.setPetVisible(true));
     entry.querySelector('[data-action="hide-pet"]')?.addEventListener("click", () => this.setPetVisible(false));
     const host = document.querySelector("#extensions_settings2, #extensions_settings");
@@ -3679,7 +3727,7 @@ class ResidentLoaderApp {
     const closeAndOpen = (view) => {
       this.petMenu?.remove();
       this.petMenu = void 0;
-      void this.openPanel(view, null);
+      void this.openPanel(view);
     };
     const menu = createPetQuickMenu({
       openLetters: () => closeAndOpen("letters"),
@@ -3741,7 +3789,6 @@ class ResidentLoaderApp {
     panel.querySelector('[data-action="close"]')?.addEventListener("click", () => {
       panel.remove();
       if (this.panel === panel) this.panel = void 0;
-      this.panelHost = void 0;
     });
     panel.querySelector('[data-action="import"]')?.addEventListener("change", (event) => {
       void this.importPack(event.currentTarget);
@@ -3759,8 +3806,9 @@ class ResidentLoaderApp {
     panel.querySelector('[data-action="unbind"]')?.addEventListener("click", () => {
       void this.unbindCurrentCharacter();
     });
-    panel.querySelector('[data-action="back-settings"]')?.addEventListener("click", () => {
-      void this.openPanel("settings");
+    panel.querySelector('[data-action="download-history"]')?.addEventListener("click", (event) => {
+      const feature = event.currentTarget.dataset.feature;
+      if (feature === "letters" || feature === "stories") void this.downloadHistory(feature);
     });
     panel.querySelector('[data-action="save-settings"]')?.addEventListener("click", () => {
       void this.saveSettings(panel, true);
@@ -4026,7 +4074,10 @@ class ResidentLoaderApp {
         apiSource: result.source
       });
       await this.openPanel();
-      this.setStatus("生成完成，已保存在下方歷史紀錄。", "success");
+      this.setStatus(
+        feature === "letters" ? "生成完成，已保存到角色來信日記。" : "生成完成，已保存到對話番外留言板。",
+        "success"
+      );
     } catch (error) {
       this.setStatus(error instanceof Error ? error.message : "生成失敗，沒有寫入空紀錄。", "error");
     }
@@ -4042,6 +4093,29 @@ class ResidentLoaderApp {
     } catch {
       this.setStatus("瀏覽器沒有開放剪貼簿，請手動選取內容。", "error");
     }
+  }
+  async downloadHistory(feature) {
+    if (!this.identity) return this.setStatus("請先打開一個角色聊天。", "error");
+    const records = await this.requireRepository().listHistory({
+      characterKey: this.identity.characterKey,
+      chatKey: this.identity.chatKey,
+      feature
+    });
+    if (records.length === 0) return this.setStatus("目前沒有可以下載的紀錄。", "error");
+    const blob = new Blob(
+      ["\uFEFF", buildHistoryText(records, feature, this.identity.characterName)],
+      { type: "text/plain;charset=utf-8" }
+    );
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = historyFilename(this.identity.characterName, feature);
+    anchor.hidden = true;
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 6e4);
+    this.setStatus("TXT 已開始下載。", "success");
   }
   async deleteHistory(button2) {
     const id = Number(button2.dataset.historyId);

@@ -1,6 +1,6 @@
 # Resident Loader 參考技術蒸餾契約
 
-> 狀態：v0.2.2 原生折疊入口與展開即載入設定流程已實作、驗證並公開發布；待酒館內真人 smoke
+> 狀態：v0.3.0 精簡折疊入口、獨立設定頁、日記／留言板閱讀頁與 TXT 匯出已實作並通過本機驗證；待公開發布與酒館內真人 smoke
 > 路由：hybrid
 > 更新時間：26-08-14 22:18（Asia/Taipei）
 > 目標：把景和 Resident 現有可驗證行為蒸餾成一個只安裝一次、可匯入多個資料包的 SillyTavern 共用 Loader。
@@ -56,12 +56,13 @@
   → 全部通過才單次 STATE_WRITE → registry 更新 → 預覽
   → 按「綁定目前角色」→ 寫 binding → mount
 
-點桌寵 → DOM_ONLY 開兩鍵快捷選單「來信紀錄／對話番外紀錄」
-  → 各自開獨立閱讀視圖；瀏覽紀錄時 GENERATE 仍為 0
-  → USER 明示按「生成一封新來信／生成一篇新番外」
+擴充欄 → DOM_ONLY 精簡入口 → 獨立設定 HTML（匯入／綁定／Prompt／最近樓數／指定 Profile／生成）
+點桌寵 → DOM_ONLY 開兩鍵快捷選單「角色來信日記／對話番外留言板」
+  → 純閱讀 HTML 只顯示日期與已保存正文，可下載累積 TXT；瀏覽紀錄時 GENERATE 仍為 0
+  → USER 回設定頁明示按「生成一封新來信／生成一篇新番外」
   → 讀該角色 Prompt 覆寫＋最近 N 樓（0＝不帶）
   → 選 current API 或 profile id → GENERATE（不 SEND）
-  → 將結果 STATE_WRITE 到本機歷史 → RENDER_ONLY 顯示在同一個 HTML 面板
+  → 將結果 STATE_WRITE 到本機歷史 → RENDER_ONLY 顯示在對應閱讀 HTML
 
 設定頁按「讓桌寵說一句」→ USER 明示 GENERATE
   → 角色卡可見描述／性格／情境＋日常 Prompt＋最近 N 樓

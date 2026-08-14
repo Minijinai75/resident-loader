@@ -96,6 +96,13 @@ describe('createLoaderPanel', () => {
     expect(panel.textContent).toContain('動作播放速度');
     expect(panel.textContent).toContain('畫面移動速度');
     expect(panel.querySelector('details[data-advanced-motion]')).not.toBeNull();
+    expect(panel.querySelector('[data-feature-settings="letters"]')).not.toBeNull();
+    expect(panel.querySelector('[data-feature-settings="stories"]')).not.toBeNull();
+    expect(panel.querySelector('[data-action="generate:letters"]')?.textContent).toContain('生成一封新來信');
+    expect(panel.querySelector('[data-action="generate:stories"]')?.textContent).toContain('生成一篇新番外');
+    expect(panel.querySelector('.resident-loader-history')).toBeNull();
+    expect(panel.querySelector('.resident-loader-panel-header [data-action="save-settings"]')?.textContent).toContain('儲存設定');
+    expect(panel.textContent).toContain('切換角色卡時，桌寵會自動跟著切換');
   });
 
   it('renders imported names as text rather than executable HTML', () => {
@@ -118,7 +125,7 @@ describe('createLoaderPanel', () => {
     expect(panel.textContent).toContain('<img src=x onerror=alert(1)>景和');
   });
 
-  it('renders letters and conversation extras as separate HTML reading views', () => {
+  it('renders letters and conversation extras as content-only HTML reading views', () => {
     const base = {
       identity: {
         characterKey: 'avatar:jinghe.png',
@@ -130,7 +137,28 @@ describe('createLoaderPanel', () => {
       selectedPackId: 'jinghe',
       settings: DEFAULT_LOADER_SETTINGS,
       profiles: [],
-      histories: { letters: [], stories: [] },
+      histories: {
+        letters: [{
+          id: 7,
+          characterKey: 'avatar:jinghe.png',
+          chatKey: 'chat:story',
+          feature: 'letters' as const,
+          content: '今天也記得好好吃飯。',
+          prompt: 'prompt',
+          apiSource: 'current',
+          createdAt: Date.UTC(2026, 7, 14, 12, 30),
+        }],
+        stories: [{
+          id: 8,
+          characterKey: 'avatar:jinghe.png',
+          chatKey: 'chat:story',
+          feature: 'stories' as const,
+          content: '番外只有生成後的正文。',
+          prompt: 'prompt',
+          apiSource: 'current',
+          createdAt: Date.UTC(2026, 7, 14, 13, 30),
+        }],
+      },
       contextSummaries: {
         letters: { messageCount: 8, characterCount: 520, preview: '最近來信脈絡' },
         stories: { messageCount: 6, characterCount: 420, preview: '最近番外脈絡' },
@@ -139,17 +167,23 @@ describe('createLoaderPanel', () => {
     };
 
     const letters = createLoaderPanel({ ...base, view: 'letters' });
-    expect(letters.querySelector('#resident-loader-title')?.textContent).toBe('角色來信紀錄');
-    expect(letters.querySelector('[data-feature="letters"]')).not.toBeNull();
-    expect(letters.querySelector('[data-feature="stories"]')).toBeNull();
-    expect(letters.querySelector('[data-action="back-settings"]')).not.toBeNull();
-    expect(letters.querySelector('[data-action="generate:letters"]')?.textContent).toContain('生成一封新來信');
-    expect(letters.textContent).toContain('指定連線設定檔案');
+    expect(letters.querySelector('#resident-loader-title')?.textContent).toBe('角色來信日記');
+    expect(letters.classList.contains('resident-loader-letters-page')).toBe(true);
+    expect(letters.querySelector('[data-history-view="letters"]')).not.toBeNull();
+    expect(letters.querySelector('[data-feature-settings]')).toBeNull();
+    expect(letters.querySelector('[data-action^="generate:"]')).toBeNull();
+    expect(letters.querySelector('[data-action="download-history"][data-feature="letters"]')).not.toBeNull();
+    expect(letters.textContent).toContain('今天也記得好好吃飯。');
+    expect(letters.textContent).not.toContain('指定連線設定檔案');
+    expect(letters.textContent).not.toContain('current');
 
     const stories = createLoaderPanel({ ...base, view: 'stories' });
-    expect(stories.querySelector('#resident-loader-title')?.textContent).toBe('對話番外紀錄');
-    expect(stories.querySelector('[data-feature="stories"]')).not.toBeNull();
-    expect(stories.querySelector('[data-feature="letters"]')).toBeNull();
-    expect(stories.querySelector('[data-action="generate:stories"]')?.textContent).toContain('生成一篇新番外');
+    expect(stories.querySelector('#resident-loader-title')?.textContent).toBe('對話番外留言板');
+    expect(stories.classList.contains('resident-loader-stories-page')).toBe(true);
+    expect(stories.querySelector('[data-history-view="stories"]')).not.toBeNull();
+    expect(stories.querySelector('[data-feature-settings]')).toBeNull();
+    expect(stories.querySelector('[data-action^="generate:"]')).toBeNull();
+    expect(stories.querySelector('[data-action="download-history"][data-feature="stories"]')).not.toBeNull();
+    expect(stories.textContent).toContain('番外只有生成後的正文。');
   });
 });

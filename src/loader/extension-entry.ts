@@ -26,20 +26,22 @@ export function createExtensionEntry(): HTMLElement {
   const content = document.createElement('div');
   content.className = 'inline-drawer-content resident-loader-entry-body';
   const description = document.createElement('p');
-  description.textContent = '匯入角色包、調整設定，或開啟與關閉目前角色的桌寵。';
+  description.textContent = '這裡只放快捷入口；完整設定與紀錄會在獨立頁面開啟。';
   const actions = document.createElement('div');
   actions.className = 'resident-loader-entry-actions';
+  const settings = actionButton('開啟桌寵設定', 'open-settings');
+  settings.classList.add('resident-loader-entry-button-primary');
   actions.append(
+    settings,
     actionButton('開啟桌寵', 'show-pet'),
     actionButton('關閉桌寵', 'hide-pet'),
+    actionButton('角色來信日記', 'open-letters'),
+    actionButton('對話番外留言板', 'open-stories'),
   );
   const status = document.createElement('p');
   status.className = 'resident-loader-entry-status';
   status.dataset.entryStatus = 'true';
-  const panelHost = document.createElement('div');
-  panelHost.className = 'resident-loader-inline-panel-host';
-  panelHost.dataset.panelHost = 'true';
-  content.append(description, actions, status, panelHost);
+  content.append(description, actions, status);
   entry.append(toggle, content);
 
   const setOpen = (open: boolean): void => {
