@@ -1,0 +1,22 @@
+{
+  "name": "@minijinai75/resident-loader",
+  "private": true,
+  "version": "0.1.1",
+  "type": "module",
+  "scripts": {
+    "build": "tsc && vite build",
+    "package": "npm run build && node scripts/package.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "^6.2.5",
+    "jsdom": "^26.1.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.1",
+    "vitest": "^3.2.4"
+  }
+}
