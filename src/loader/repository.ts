@@ -45,6 +45,64 @@ export interface HistoryRecord extends HistoryScope {
   createdAt: number;
 }
 
+export interface PackIdentitySummary {
+  displayName: string;
+  creator: string;
+}
+
+/**
+ * 同 id、內容不同的角色包撞在一起。匯入流程收到它要問使用者，不准無聲覆蓋
+ * （審查 P0-2：開放生態下兩個作者都做「小明」、或有人故意做同 id 的假冒包）。
+ */
+export class PackConflictError extends Error {
+  readonly packId: string;
+  readonly existing: PackIdentitySummary;
+  readonly incoming: PackIdentitySummary;
+
+  constructor(packId: string, existing: PackIdentitySummary, incoming: PackIdentitySummary) {
+    super(
+      `角色包 id「${packId}」已經存在：目前是「${existing.displayName}」（作者 ${existing.creator || '未填'}），` +
+        `要匯入的是「${incoming.displayName}」（作者 ${incoming.creator || '未填'}），兩者內容不同。`,
+    );
+    this.name = 'PackConflictError';
+    this.packId = packId;
+    this.existing = existing;
+    this.incoming = incoming;
+  }
+}
+
+function identityOf(pack: ImportedResidentPack): PackIdentitySummary {
+  return {
+    displayName: pack.manifest.identity.displayName,
+    creator: pack.manifest.identity.creator,
+  };
+}
+
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  if (typeof value === 'object' && value !== null) {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.byteLength !== b.byteLength) return false;
+  for (let index = 0; index < a.byteLength; index += 1) {
+    if (a[index] !== b[index]) return false;
+  }
+  return true;
+}
+
+/** manifest 逐鍵相等（不看鍵序）且圖集逐 byte 相等，才算同一個包。 */
+export function samePackContent(a: ImportedResidentPack, b: ImportedResidentPack): boolean {
+  return stableStringify(a.manifest) === stableStringify(b.manifest) && sameBytes(a.spritesheet, b.spritesheet);
+}
+
 function requestResult<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
@@ -83,10 +141,33 @@ export class ResidentRepository {
     this.database.close();
   }
 
-  async putPack(pack: ImportedResidentPack): Promise<void> {
+  /**
+   * 存入角色包。同 id 已存在時：內容相同＝當作重新匯入（更新 importedAt）；
+   * 內容不同＝丟 PackConflictError、一個 byte 都不寫，除非呼叫端明確 `overwrite: true`。
+   * 讀與寫在同一筆 readwrite 交易裡完成，兩次匯入撞在一起也不會互相蓋掉。
+   */
+  async putPack(pack: ImportedResidentPack, options: { overwrite?: boolean } = {}): Promise<void> {
+    const record = { ...pack, id: pack.manifest.id } satisfies PackRecord;
     const transaction = this.database.transaction('packs', 'readwrite');
-    transaction.objectStore('packs').put({ ...pack, id: pack.manifest.id } satisfies PackRecord);
+    const store = transaction.objectStore('packs');
+    let conflict: PackConflictError | undefined;
+
+    if (options.overwrite) {
+      store.put(record);
+    } else {
+      const lookup = store.get(pack.manifest.id) as IDBRequest<PackRecord | undefined>;
+      lookup.onsuccess = () => {
+        const existing = lookup.result;
+        if (existing && !samePackContent(existing, pack)) {
+          conflict = new PackConflictError(pack.manifest.id, identityOf(existing), identityOf(pack));
+          return;
+        }
+        store.put(record);
+      };
+    }
+
     await transactionComplete(transaction);
+    if (conflict) throw conflict;
   }
 
   async getPack(packId: string): Promise<ImportedResidentPack | undefined> {

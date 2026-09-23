@@ -3211,6 +3211,44 @@ function normalizeLoaderSettings(value) {
 }
 const DATABASE_VERSION = 2;
 const DEFAULT_DATABASE_NAME = "resident-loader";
+class PackConflictError extends Error {
+  packId;
+  existing;
+  incoming;
+  constructor(packId, existing, incoming) {
+    super(
+      `角色包 id「${packId}」已經存在：目前是「${existing.displayName}」（作者 ${existing.creator || "未填"}），要匯入的是「${incoming.displayName}」（作者 ${incoming.creator || "未填"}），兩者內容不同。`
+    );
+    this.name = "PackConflictError";
+    this.packId = packId;
+    this.existing = existing;
+    this.incoming = incoming;
+  }
+}
+function identityOf(pack) {
+  return {
+    displayName: pack.manifest.identity.displayName,
+    creator: pack.manifest.identity.creator
+  };
+}
+function stableStringify(value) {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  if (typeof value === "object" && value !== null) {
+    const record = value;
+    return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+function sameBytes(a, b) {
+  if (a.byteLength !== b.byteLength) return false;
+  for (let index = 0; index < a.byteLength; index += 1) {
+    if (a[index] !== b[index]) return false;
+  }
+  return true;
+}
+function samePackContent(a, b) {
+  return stableStringify(a.manifest) === stableStringify(b.manifest) && sameBytes(a.spritesheet, b.spritesheet);
+}
 function requestResult(request) {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
@@ -3247,10 +3285,31 @@ class ResidentRepository {
   close() {
     this.database.close();
   }
-  async putPack(pack) {
+  /**
+   * 存入角色包。同 id 已存在時：內容相同＝當作重新匯入（更新 importedAt）；
+   * 內容不同＝丟 PackConflictError、一個 byte 都不寫，除非呼叫端明確 `overwrite: true`。
+   * 讀與寫在同一筆 readwrite 交易裡完成，兩次匯入撞在一起也不會互相蓋掉。
+   */
+  async putPack(pack, options = {}) {
+    const record = { ...pack, id: pack.manifest.id };
     const transaction = this.database.transaction("packs", "readwrite");
-    transaction.objectStore("packs").put({ ...pack, id: pack.manifest.id });
+    const store = transaction.objectStore("packs");
+    let conflict;
+    if (options.overwrite) {
+      store.put(record);
+    } else {
+      const lookup = store.get(pack.manifest.id);
+      lookup.onsuccess = () => {
+        const existing = lookup.result;
+        if (existing && !samePackContent(existing, pack)) {
+          conflict = new PackConflictError(pack.manifest.id, identityOf(existing), identityOf(pack));
+          return;
+        }
+        store.put(record);
+      };
+    }
     await transactionComplete(transaction);
+    if (conflict) throw conflict;
   }
   async getPack(packId) {
     const transaction = this.database.transaction("packs", "readonly");
@@ -3785,15 +3844,19 @@ function defaultTavernContext() {
     return tavern ?? null;
   }
 }
+function defaultConfirmOverwrite(message) {
+  return typeof window !== "undefined" && typeof window.confirm === "function" ? window.confirm(message) : false;
+}
 function numericValue(panel, key, fallback) {
   const value = panel.querySelector(`[data-setting="${key}"]`)?.value;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 class ResidentLoaderApp {
-  constructor(getContext = defaultTavernContext) {
+  constructor(getContext = defaultTavernContext, options = {}) {
     this.getContext = getContext;
     this.generation = createGenerationAdapter({ getContext });
+    this.confirmOverwrite = options.confirmOverwrite ?? defaultConfirmOverwrite;
   }
   getContext;
   repository;
@@ -3811,6 +3874,7 @@ class ResidentLoaderApp {
   unsubscribers = [];
   started = false;
   generation;
+  confirmOverwrite;
   async start() {
     if (this.started) return;
     this.started = true;
@@ -4070,13 +4134,33 @@ class ResidentLoaderApp {
     this.setStatus("正在檢查角色包…");
     try {
       const pack = await importResidentPack(await file.arrayBuffer());
-      await this.requireRepository().putPack(pack);
+      await this.storePack(pack);
       this.panelSelectedPackId = pack.manifest.id;
       await this.openPanel();
       this.setStatus(`已安全匯入「${pack.manifest.identity.displayName}」。`, "success");
     } catch (error) {
       this.setStatus(error instanceof Error ? error.message : "角色包匯入失敗。", "error");
       input.value = "";
+    }
+  }
+  /** 撞 id 且內容不同時先問過使用者；沒點確認就一個 byte 都不動。 */
+  async storePack(pack) {
+    const repository = this.requireRepository();
+    try {
+      await repository.putPack(pack);
+    } catch (error) {
+      if (!(error instanceof PackConflictError)) throw error;
+      const approved = await this.confirmOverwrite(
+        `${error.message}
+
+要用新匯入的「${error.incoming.displayName}」覆蓋嗎？取消會保留原本的「${error.existing.displayName}」。`
+      );
+      if (!approved) {
+        throw new Error(
+          `已取消匯入，保留原本的「${error.existing.displayName}」（作者 ${error.existing.creator || "未填"}）。`
+        );
+      }
+      await repository.putPack(pack, { overwrite: true });
     }
   }
   async bindSelectedPack(panel) {

@@ -11,6 +11,7 @@ import { createLoaderPanel } from './panel';
 import { createPetQuickMenu } from './pet-menu';
 import {
   openResidentRepository,
+  PackConflictError,
   type HistoryRecord,
   type ResidentRepository,
 } from './repository';
@@ -50,6 +51,15 @@ function defaultTavernContext(): unknown {
   }
 }
 
+export interface ResidentLoaderAppOptions {
+  /** 同 id 角色包撞名時問使用者要不要覆蓋；預設用瀏覽器的 confirm。 */
+  confirmOverwrite?: (message: string) => boolean | Promise<boolean>;
+}
+
+function defaultConfirmOverwrite(message: string): boolean {
+  return typeof window !== 'undefined' && typeof window.confirm === 'function' ? window.confirm(message) : false;
+}
+
 function numericValue(panel: HTMLElement, key: string, fallback: number): number {
   const value = panel.querySelector<HTMLInputElement>(`[data-setting="${key}"]`)?.value;
   const parsed = Number(value);
@@ -72,9 +82,14 @@ export class ResidentLoaderApp {
   private readonly unsubscribers: Array<() => void> = [];
   private started = false;
   private readonly generation;
+  private readonly confirmOverwrite: (message: string) => boolean | Promise<boolean>;
 
-  constructor(private readonly getContext: () => unknown = defaultTavernContext) {
+  constructor(
+    private readonly getContext: () => unknown = defaultTavernContext,
+    options: ResidentLoaderAppOptions = {},
+  ) {
     this.generation = createGenerationAdapter({ getContext });
+    this.confirmOverwrite = options.confirmOverwrite ?? defaultConfirmOverwrite;
   }
 
   async start(): Promise<void> {
@@ -381,13 +396,32 @@ export class ResidentLoaderApp {
     this.setStatus('正在檢查角色包…');
     try {
       const pack = await importResidentPack(await file.arrayBuffer());
-      await this.requireRepository().putPack(pack);
+      await this.storePack(pack);
       this.panelSelectedPackId = pack.manifest.id;
       await this.openPanel();
       this.setStatus(`已安全匯入「${pack.manifest.identity.displayName}」。`, 'success');
     } catch (error) {
       this.setStatus(error instanceof Error ? error.message : '角色包匯入失敗。', 'error');
       input.value = '';
+    }
+  }
+
+  /** 撞 id 且內容不同時先問過使用者；沒點確認就一個 byte 都不動。 */
+  private async storePack(pack: ImportedResidentPack): Promise<void> {
+    const repository = this.requireRepository();
+    try {
+      await repository.putPack(pack);
+    } catch (error) {
+      if (!(error instanceof PackConflictError)) throw error;
+      const approved = await this.confirmOverwrite(
+        `${error.message}\n\n要用新匯入的「${error.incoming.displayName}」覆蓋嗎？取消會保留原本的「${error.existing.displayName}」。`,
+      );
+      if (!approved) {
+        throw new Error(
+          `已取消匯入，保留原本的「${error.existing.displayName}」（作者 ${error.existing.creator || '未填'}）。`,
+        );
+      }
+      await repository.putPack(pack, { overwrite: true });
     }
   }
 
