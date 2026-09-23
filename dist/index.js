@@ -3729,7 +3729,7 @@ function createGenerationAdapter(options) {
       if (input.mode === "profile") {
         const service = connectionManagerService(context);
         if (!service) {
-          throw new Error("這個酒館版本沒有 Connection Manager 生成介面（需要 SillyTavern 1.13 以上）。");
+          throw new Error("這個酒館版本沒有 Connection Manager 生成介面，請更新 SillyTavern。");
         }
         const profile = extractConnectionProfiles(context).find((item) => item.id === input.profileId);
         if (!profile) throw new Error("找不到指定的酒館連線設定檔。");
@@ -4161,6 +4161,7 @@ class ResidentLoaderApp {
         );
       }
       await repository.putPack(pack, { overwrite: true });
+      await this.rebind();
     }
   }
   async bindSelectedPack(panel) {

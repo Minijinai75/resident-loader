@@ -422,6 +422,8 @@ export class ResidentLoaderApp {
         );
       }
       await repository.putPack(pack, { overwrite: true });
+      // 綁著這個 id 的角色正在畫面上跑舊圖，覆蓋完立刻重綁，不等切聊天。
+      await this.rebind();
     }
   }
 

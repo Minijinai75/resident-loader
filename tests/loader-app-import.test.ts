@@ -92,10 +92,13 @@ describe('ResidentLoaderApp pack import', () => {
     await app.openPanel();
 
     await importThrough(await buildArchive(first), 'first.jrpack.zip');
+    const rebind = vi.spyOn(app as unknown as { rebind: () => Promise<void> }, 'rebind');
     const message = await importThrough(await buildArchive(second), 'second.jrpack.zip');
 
     expect(confirmOverwrite).toHaveBeenCalledTimes(1);
     expect(message).toContain('已安全匯入「小景和」');
+    // 覆蓋的是畫面上正在跑的包，要立刻重綁，不能等到切聊天才換圖。
+    expect(rebind).toHaveBeenCalledTimes(1);
 
     const repository = await openResidentRepository();
     const stored = await repository.getPack('jinghe');

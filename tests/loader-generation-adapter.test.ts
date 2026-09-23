@@ -164,7 +164,7 @@ describe('createGenerationAdapter', () => {
 
     await expect(
       adapter.generateText({ mode: 'profile', profileId: 'writer', prompt: 'x', maxChatHistory: 0 }),
-    ).rejects.toThrow('這個酒館版本沒有 Connection Manager 生成介面');
+    ).rejects.toThrow('這個酒館版本沒有 Connection Manager 生成介面，請更新 SillyTavern');
   });
 
   it('surfaces the underlying API error instead of the generic wrapper', async () => {

@@ -23,7 +23,7 @@ function safeString(value: unknown, maximum = 200): string {
 }
 
 /**
- * SillyTavern 1.13+ 把 ConnectionManagerRequestService 放在 getContext() 上
+ * 新版 SillyTavern 把 ConnectionManagerRequestService 放在 getContext() 上
  * （1.18.0 `st-context.js:292`，實作 `scripts/extensions/shared.js:388-618`）。
  * 這是 /profile-genstream 自己內部用的東西：messages 直接進 API 管線，
  * 不經指令解析器、不做 macro 替換。
@@ -177,13 +177,13 @@ function cleanGeneratedText(value: unknown): string {
 }
 
 function describeRequestError(error: unknown): string {
-  // shared.js:485 \u628a\u771f\u6b63\u7684\u932f\u8aa4\u5305\u6210 Error('API request failed', { cause })\u3002
+  // shared.js:485 把真正的錯誤包成 Error('API request failed', { cause })，拆出來給使用者看。
   if (error instanceof Error) {
     const cause = (error as Error & { cause?: unknown }).cause;
     const causeMessage = cause instanceof Error ? cause.message : typeof cause === 'string' ? cause : '';
     return causeMessage || error.message;
   }
-  return typeof error === 'string' ? error : '\u672a\u77e5\u932f\u8aa4';
+  return typeof error === 'string' ? error : '未知錯誤';
 }
 
 export function createGenerationAdapter(options: {
@@ -202,7 +202,7 @@ export function createGenerationAdapter(options: {
       if (input.mode === 'profile') {
         const service = connectionManagerService(context);
         if (!service) {
-          throw new Error('這個酒館版本沒有 Connection Manager 生成介面（需要 SillyTavern 1.13 以上）。');
+          throw new Error('這個酒館版本沒有 Connection Manager 生成介面，請更新 SillyTavern。');
         }
         const profile = extractConnectionProfiles(context).find((item) => item.id === input.profileId);
         if (!profile) throw new Error('找不到指定的酒館連線設定檔。');
