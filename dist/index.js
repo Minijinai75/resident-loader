@@ -3556,13 +3556,32 @@ function isRecord$2(value) {
 function safeString(value, maximum = 200) {
   return typeof value === "string" ? value.trim().slice(0, maximum) : "";
 }
-function extractConnectionProfiles(context) {
+const PROFILE_MAX_TOKENS = 2048;
+function connectionManagerService(context) {
+  if (!isRecord$2(context)) return void 0;
+  const service = context.ConnectionManagerRequestService;
+  if (!isRecord$2(service) || typeof service.sendRequest !== "function") return void 0;
+  return service;
+}
+function rawConnectionProfiles(context) {
   if (!isRecord$2(context)) return [];
+  const service = isRecord$2(context.ConnectionManagerRequestService) ? context.ConnectionManagerRequestService : void 0;
+  if (service && typeof service.getSupportedProfiles === "function") {
+    try {
+      const supported = service.getSupportedProfiles();
+      return Array.isArray(supported) ? supported : [];
+    } catch {
+      return [];
+    }
+  }
   const extensionSettings = context.extensionSettings;
   if (!isRecord$2(extensionSettings)) return [];
   const connectionManager = extensionSettings.connectionManager;
   if (!isRecord$2(connectionManager) || !Array.isArray(connectionManager.profiles)) return [];
-  return connectionManager.profiles.flatMap((profile) => {
+  return connectionManager.profiles;
+}
+function extractConnectionProfiles(context) {
+  return rawConnectionProfiles(context).flatMap((profile) => {
     if (!isRecord$2(profile)) return [];
     const id = safeString(profile.id);
     const name = safeString(profile.name) || id;
@@ -3635,8 +3654,13 @@ function cleanGeneratedText(value) {
   if (!text2) throw new Error("酒館沒有回傳文字，請檢查生成連線。");
   return text2.slice(0, 12e3);
 }
-function slashQuote(value) {
-  return JSON.stringify(value).replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
+function describeRequestError(error) {
+  if (error instanceof Error) {
+    const cause = error.cause;
+    const causeMessage = cause instanceof Error ? cause.message : typeof cause === "string" ? cause : "";
+    return causeMessage || error.message;
+  }
+  return typeof error === "string" ? error : "未知錯誤";
 }
 function createGenerationAdapter(options) {
   const findApi = options.findApi ?? defaultFindApi;
@@ -3644,18 +3668,23 @@ function createGenerationAdapter(options) {
     async generateText(input) {
       const context = options.getContext();
       if (input.mode === "profile") {
+        const service = connectionManagerService(context);
+        if (!service) {
+          throw new Error("這個酒館版本沒有 Connection Manager 生成介面（需要 SillyTavern 1.13 以上）。");
+        }
         const profile = extractConnectionProfiles(context).find((item) => item.id === input.profileId);
         if (!profile) throw new Error("找不到指定的酒館連線設定檔。");
-        const triggerSlash = callable(findApi("triggerSlash"));
-        if (!triggerSlash) throw new Error("酒館指令介面目前無法使用。");
-        const command = [
-          "/profile-genstream",
-          `profile=${slashQuote(profile.id)}`,
-          "reasoning=false",
-          "stop=true",
-          slashQuote(input.prompt)
-        ].join(" ");
-        const result2 = await triggerSlash(command);
+        let result2;
+        try {
+          result2 = await service.sendRequest(
+            profile.id,
+            [{ role: "user", content: input.prompt }],
+            PROFILE_MAX_TOKENS,
+            { stream: false, extractData: true, includePreset: true }
+          );
+        } catch (error) {
+          throw new Error(`指定連線生成失敗：${describeRequestError(error)}`);
+        }
         return { text: cleanGeneratedText(result2), source: `profile:${profile.id}` };
       }
       const generate = callable(findApi("generate"));

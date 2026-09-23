@@ -22,14 +22,58 @@ function safeString(value: unknown, maximum = 200): string {
   return typeof value === 'string' ? value.trim().slice(0, maximum) : '';
 }
 
-export function extractConnectionProfiles(context: unknown): ConnectionProfileSummary[] {
+/**
+ * SillyTavern 1.13+ 把 ConnectionManagerRequestService 放在 getContext() 上
+ * （1.18.0 `st-context.js:292`，實作 `scripts/extensions/shared.js:388-618`）。
+ * 這是 /profile-genstream 自己內部用的東西：messages 直接進 API 管線，
+ * 不經指令解析器、不做 macro 替換。
+ */
+interface ConnectionManagerRequestServiceLike {
+  sendRequest: (
+    profileId: string,
+    prompt: Array<{ role: string; content: string }>,
+    maxTokens: number,
+    custom?: { stream?: boolean; extractData?: boolean; includePreset?: boolean },
+  ) => Promise<unknown>;
+  getSupportedProfiles?: () => unknown;
+}
+
+const PROFILE_MAX_TOKENS = 2048; // 與 /profile-genstream 的 length 預設值相同
+
+function connectionManagerService(context: unknown): ConnectionManagerRequestServiceLike | undefined {
+  if (!isRecord(context)) return undefined;
+  const service = context.ConnectionManagerRequestService;
+  if (!isRecord(service) || typeof service.sendRequest !== 'function') return undefined;
+  return service as unknown as ConnectionManagerRequestServiceLike;
+}
+
+/**
+ * 只列 ConnectionManagerRequestService 接得住的設定檔（Chat／Text Completion）。
+ * 官方 getSupportedProfiles() 在時以它為準；它拋錯代表 Connection Manager 被停用，
+ * 那就沒有可用的設定檔。沒有這個服務的舊版酒館退回原始設定清單。
+ */
+function rawConnectionProfiles(context: unknown): unknown[] {
   if (!isRecord(context)) return [];
+  const service = isRecord(context.ConnectionManagerRequestService)
+    ? context.ConnectionManagerRequestService
+    : undefined;
+  if (service && typeof service.getSupportedProfiles === 'function') {
+    try {
+      const supported = (service.getSupportedProfiles as () => unknown)();
+      return Array.isArray(supported) ? supported : [];
+    } catch {
+      return [];
+    }
+  }
   const extensionSettings = context.extensionSettings;
   if (!isRecord(extensionSettings)) return [];
   const connectionManager = extensionSettings.connectionManager;
   if (!isRecord(connectionManager) || !Array.isArray(connectionManager.profiles)) return [];
+  return connectionManager.profiles;
+}
 
-  return connectionManager.profiles.flatMap((profile): ConnectionProfileSummary[] => {
+export function extractConnectionProfiles(context: unknown): ConnectionProfileSummary[] {
+  return rawConnectionProfiles(context).flatMap((profile): ConnectionProfileSummary[] => {
     if (!isRecord(profile)) return [];
     const id = safeString(profile.id);
     const name = safeString(profile.name) || id;
@@ -132,8 +176,14 @@ function cleanGeneratedText(value: unknown): string {
   return text.slice(0, 12_000);
 }
 
-function slashQuote(value: string): string {
-  return JSON.stringify(value).replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+function describeRequestError(error: unknown): string {
+  // shared.js:485 \u628a\u771f\u6b63\u7684\u932f\u8aa4\u5305\u6210 Error('API request failed', { cause })\u3002
+  if (error instanceof Error) {
+    const cause = (error as Error & { cause?: unknown }).cause;
+    const causeMessage = cause instanceof Error ? cause.message : typeof cause === 'string' ? cause : '';
+    return causeMessage || error.message;
+  }
+  return typeof error === 'string' ? error : '\u672a\u77e5\u932f\u8aa4';
 }
 
 export function createGenerationAdapter(options: {
@@ -150,18 +200,24 @@ export function createGenerationAdapter(options: {
     }): Promise<{ text: string; source: string }> {
       const context = options.getContext();
       if (input.mode === 'profile') {
+        const service = connectionManagerService(context);
+        if (!service) {
+          throw new Error('這個酒館版本沒有 Connection Manager 生成介面（需要 SillyTavern 1.13 以上）。');
+        }
         const profile = extractConnectionProfiles(context).find((item) => item.id === input.profileId);
         if (!profile) throw new Error('找不到指定的酒館連線設定檔。');
-        const triggerSlash = callable(findApi('triggerSlash'));
-        if (!triggerSlash) throw new Error('酒館指令介面目前無法使用。');
-        const command = [
-          '/profile-genstream',
-          `profile=${slashQuote(profile.id)}`,
-          'reasoning=false',
-          'stop=true',
-          slashQuote(input.prompt),
-        ].join(' ');
-        const result = await triggerSlash(command as never);
+        // prompt 以 messages 陣列原樣交給 API 管線：不拼指令字串、不經解析器、不展開 macro。
+        let result: unknown;
+        try {
+          result = await service.sendRequest(
+            profile.id,
+            [{ role: 'user', content: input.prompt }],
+            PROFILE_MAX_TOKENS,
+            { stream: false, extractData: true, includePreset: true },
+          );
+        } catch (error) {
+          throw new Error(`指定連線生成失敗：${describeRequestError(error)}`);
+        }
         return { text: cleanGeneratedText(result), source: `profile:${profile.id}` };
       }
 
