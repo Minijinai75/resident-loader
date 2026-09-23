@@ -97,3 +97,12 @@
 - P2-13（本 commit）：`scripts/package.mjs` 打包清單加 `LICENSE`（AGPL-3.0 §4）；版本 0.3.1→0.3.2（`manifest.json` 手改，`package.json`／`package-lock.json` 用 `npm version` 同步；README 沒有版本字串）。`npm run package` 兩次同雜湊 `f81d43c9058bf87eea2aad5ebd6a298b00f8cf2176b7ed6ae92d06567683bad1`（72,908 bytes）；用 Expand-Archive 解開實看：五檔 `LICENSE`／`README.md`／`dist/index.js`／`dist/style.css`／`manifest.json`，解出的 LICENSE SHA-256 `0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0` 與 repo 相同，zip 內 manifest 報 0.3.2。
 - 驗證：`npm test` 12 檔 62 測綠（原 44＋新 18）、`npm run build` 過、每顆 commit 的 dist 都同步重建。Mini 本機酒館 `st_status` 回 1.18.0，與對照源碼同版。
 - 沒做、要 Mini 在場：真酒館燒一次 profile 模式生成（用她的 API 額度）；建 GitHub Release v0.3.2 掛新 ZIP，然後 tavern-pet-workshop 的離線下載連結（`index.html:286`、README）從 v0.3.1 改 v0.3.2——現在公開的 v0.3.1 ZIP 裡沒有 LICENSE。
+
+## 2026-09-24 01:53（同一班，CI 事故與審查官驗收殘留）
+
+- 事故：`aa9c368` push 後 CI run `35896771908` 紅，Mini 手機收到警報。test／build 綠，紅在 `git diff --exit-code -- dist`，唯一差檔 `dist/index.js.map`——審查報告 P2-14 的預言原樣成真。
+- 死因（不同源的尺對過）：用 JSON 解析 map 逐一數 `sourcesContent` 裡的 CR 字元，上一顆綠的 `d542dcc` 是零、`aa9c368` 的 15 個 src 檔全帶 CR（app.ts 754、panel.ts 511……）——這台 Windows 工作區 CRLF（`core.autocrlf=true`）原樣進了 sourcemap；CI 在 Linux 用 LF 源碼重 build 自然對不上；`index.js` 與 `style.css` 沒差。先前用 grep 找字面 `\r\n` 數到 523 個，那是打包進來的 jszip 源碼裡的字串字面量，錯尺——量 sourcemap 要解 JSON 數真的 CR。
+- 修法（`6e168be`＋`d2585c3`）：`.gitattributes` 加 `* text=auto eol=lf`（index 本來就全 LF，`git add --renormalize` 零變化）；`git rm --cached -r . && git reset --hard HEAD` 逼工作區 41 檔 CRLF→LF（`git checkout-index -f -a` 不會重寫內容正規化後相同的檔，試過沒用）；重 build 後 map 零 CR、`index.js` 逐 byte 不變、map 393.54 kB 與失敗 run 裡 CI 自己 build 的 393.54 kB 對上。
+- 審查官驗收殘留三條（`7ac8a0a`）：st-adapter 註解與「未知錯誤」在源碼裡是 `把…` 跳脫序列——Edit 工具對這個檔案寫中文會轉成跳脫（第二次 Edit 也一樣），改 python 直寫 UTF-8；「需要 SillyTavern 1.13 以上」是沒查證的數字，:205 文案改「請更新 SillyTavern」、interface 註解的「1.13+」同根拿掉；`storePack` 確認覆蓋後補 `await this.rebind()`（原本要切聊天才換圖），測試加 rebind spy（拔實作 0 次紅、裝回 1 次綠）。審查官另裁 confirm 出口「留」。
+- 驗證：CI run `35898464429`（`7ac8a0a`）綠，27s，含 dist 比對與 package；本機 `npm run package` 兩次與 CI 三方同雜湊 `2ba7f90ca8bf827417ebf4365e74935e30b6d40ed83bd95b2012d37c77ca2621`（72,854 bytes）——Windows 與 Linux 打出同一顆 ZIP；解開實看五檔、LICENSE 與 repo 逐 byte 相同、manifest 0.3.2。01:34 那版 `f81d43c9…`（72,908 bytes）作廢，不要拿去發 Release。
+- 仍要 Mini：Release v0.3.2 掛 `2ba7f90c…` 那顆；工坊離線連結改 v0.3.2；真酒館 F12 打 `SillyTavern.getContext().ConnectionManagerRequestService` 一行（審查官與修理班都沒連上 Chrome）；真燒一次 profile 生成。

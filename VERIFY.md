@@ -54,11 +54,17 @@
 | P0-2 repository/app RED/GREEN (26-09-24) | PASS | 4 repository tests (idempotent re-import, sprite conflict, manifest conflict with both names, explicit overwrite) + 2 app tests through a real `<input type=file>` change event (decline keeps old pack, confirm replaces) |
 | `npm test` after P0-1/P0-2/P2-13 | PASS | 12 files / 62 tests (44 existing + 18 new) |
 | `npm run build` after each fix | PASS | tsc + vite build; committed dist regenerated in each commit |
-| `npm run package` twice for v0.3.2 | PASS | Both runs produced SHA-256 `f81d43c9058bf87eea2aad5ebd6a298b00f8cf2176b7ed6ae92d06567683bad1`, 72,908 bytes |
-| v0.3.2 ZIP extracted with Expand-Archive | PASS | Exactly `LICENSE`, `README.md`, `dist/index.js`, `dist/style.css`, `manifest.json`; extracted LICENSE SHA-256 `0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0` equals the repo LICENSE (AGPL-3.0 text); manifest inside reports 0.3.2 |
+| `npm run package` twice for v0.3.2 at `aa9c368` | SUPERSEDED | Both runs produced SHA-256 `f81d43c9058bf87eea2aad5ebd6a298b00f8cf2176b7ed6ae92d06567683bad1` (72,908 bytes), but that dist carried a CRLF-contaminated sourcemap (see next row); do not publish this ZIP |
+| CI run `35896771908` for `aa9c368` | FAIL (root-caused) | test/build green; `git diff --exit-code -- dist` red on `dist/index.js.map` only. Parsing both maps as JSON and counting CR characters in `sourcesContent`: `d542dcc` (last green) = 0; `aa9c368` = all 15 src files carry CR (app.ts 754, panel.ts 511, …) — Windows worktree CRLF was embedded verbatim. Review P2-14 |
+| P2-14 fix: `.gitattributes` `* text=auto eol=lf` + worktree refresh (`git rm --cached -r . && git reset --hard HEAD`) + rebuild (`6e168be`, `d2585c3`) | PASS | `git ls-files --eol` 49/49 tracked text files `i/lf w/lf`; rebuilt map has 0 CR in every source; `dist/index.js` byte-identical; map size 393.54 kB matches what CI itself built in the failed run |
+| CI run `35898464429` for `7ac8a0a` | PASS | Independent install, 12 files / 62 tests, build, `git diff --exit-code -- dist` clean, package — 27s |
+| `npm run package` twice for v0.3.2 at `7ac8a0a` vs CI | PASS | Local runs and the CI run all produced SHA-256 `2ba7f90ca8bf827417ebf4365e74935e30b6d40ed83bd95b2012d37c77ca2621`, 72,854 bytes — Windows and Linux builds are byte-identical |
+| v0.3.2 ZIP (`2ba7f90c…`) extracted with Expand-Archive | PASS | Exactly `LICENSE`, `README.md`, `dist/index.js`, `dist/style.css`, `manifest.json`; extracted LICENSE is byte-identical to the repo LICENSE (AGPL-3.0 text, SHA-256 `0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0`); manifest inside reports 0.3.2 |
+| Reviewer residue (`7ac8a0a`): escape sequences restored, unverified "1.13" removed, `rebind()` after confirmed overwrite | PASS | `loader-app-import` overwrite test now spies `rebind`: 0 calls with the implementation stashed (RED), 1 call with it in place (GREEN); full suite 12 files / 62 tests |
 | Mini's local SillyTavern version | PASS | `st_status` returned 1.18.0, same as the reference source tree used for the review |
 
 ## Pending
 
 - Real headed SillyTavern smoke (never run since 8/15), now including one real profile-mode generation through `ConnectionManagerRequestService.sendRequest` (uses Mini's API quota).
-- GitHub Release v0.3.2 with `releases/resident-loader-v0.3.2.zip`, then update the workshop offline link (`tavern-pet-workshop/index.html:286`, README) from v0.3.1 to v0.3.2 — the published v0.3.1 ZIP contains no LICENSE.
+- GitHub Release v0.3.2 with `releases/resident-loader-v0.3.2.zip` built from `7ac8a0a` or later (SHA-256 `2ba7f90c…2621`, 72,854 bytes — never the superseded `f81d43c9…` build), then update the workshop offline link (`tavern-pet-workshop/index.html:286`, README) from v0.3.1 to v0.3.2 — the published v0.3.1 ZIP contains no LICENSE.
+- In-Tavern console check `SillyTavern.getContext().ConnectionManagerRequestService` (reviewer's one-liner) — neither the reviewer nor the repair shift could attach Chrome.
