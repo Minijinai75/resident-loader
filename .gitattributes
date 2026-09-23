@@ -1,0 +1,3 @@
+# 26-09-24 P2-14：dist/index.js.map 的 sourcesContent 會原樣嵌入源碼換行；Windows 工作區 CRLF 會讓 CI（Linux, LF）重 build 的 map 對不上。
+# 全 repo 文字檔一律 LF，checkout 也不轉 CRLF。
+* text=auto eol=lf
