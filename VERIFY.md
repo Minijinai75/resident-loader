@@ -50,7 +50,15 @@
 | `npm run package` twice for v0.3.1 | PASS | Both runs produced SHA-256 `e1c6a804df98e6ed1d043067595d92ebb7fecff3af3d182a6c3304ec3cce4df3` |
 | GitHub Actions run `31816357745` | PASS | Independent install, 10 files / 44 tests, build, committed-dist drift check, and package completed for `d0e0f2e` |
 | Public manifest/dist/v0.3.1 ZIP | PASS | Manifest name/version are【酒館桌寵】/0.3.1; date-rail and four-tone board markers are live; ZIP is 59,435 bytes with matching SHA-256 |
+| P0-1 adapter RED/GREEN (26-09-24) | PASS | 12 new tests failed against the old `triggerSlash` path, then passed with `ConnectionManagerRequestService.sendRequest`; five prompt samples (`\|`, multi-line, quotes, `{{macro}}`, trailing backslash) reach `messages[0].content` byte-for-byte |
+| P0-2 repository/app RED/GREEN (26-09-24) | PASS | 4 repository tests (idempotent re-import, sprite conflict, manifest conflict with both names, explicit overwrite) + 2 app tests through a real `<input type=file>` change event (decline keeps old pack, confirm replaces) |
+| `npm test` after P0-1/P0-2/P2-13 | PASS | 12 files / 62 tests (44 existing + 18 new) |
+| `npm run build` after each fix | PASS | tsc + vite build; committed dist regenerated in each commit |
+| `npm run package` twice for v0.3.2 | PASS | Both runs produced SHA-256 `f81d43c9058bf87eea2aad5ebd6a298b00f8cf2176b7ed6ae92d06567683bad1`, 72,908 bytes |
+| v0.3.2 ZIP extracted with Expand-Archive | PASS | Exactly `LICENSE`, `README.md`, `dist/index.js`, `dist/style.css`, `manifest.json`; extracted LICENSE SHA-256 `0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0` equals the repo LICENSE (AGPL-3.0 text); manifest inside reports 0.3.2 |
+| Mini's local SillyTavern version | PASS | `st_status` returned 1.18.0, same as the reference source tree used for the review |
 
 ## Pending
 
-- Real headed SillyTavern v0.3.1 update/generation/TXT/reload smoke.
+- Real headed SillyTavern smoke (never run since 8/15), now including one real profile-mode generation through `ConnectionManagerRequestService.sendRequest` (uses Mini's API quota).
+- GitHub Release v0.3.2 with `releases/resident-loader-v0.3.2.zip`, then update the workshop offline link (`tavern-pet-workshop/index.html:286`, README) from v0.3.1 to v0.3.2 — the published v0.3.1 ZIP contains no LICENSE.

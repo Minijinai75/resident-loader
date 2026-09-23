@@ -88,3 +88,12 @@
 - Public proof: manifest reports【酒館桌寵】v0.3.1; public dist contains the date rail, letter sheet, numbered four-tone board, and mobile CSS. The 59,435-byte release ZIP matches local SHA-256 `e1c6a804df98e6ed1d043067595d92ebb7fecff3af3d182a6c3304ec3cce4df3`.
 - Workshop handoff: public workshop now points its offline fallback to v0.3.1 and passed Pages/browser verification.
 - Remaining: Mini updates the installed extension and performs the real SillyTavern smoke.
+
+## 2026-09-24 01:34（霽野 5.1 修理班，接 CODE_REVIEW_5.1_260924 工單）
+
+- 範圍：只修審查報告 P0-1、P0-2、P2-13 三案；P1 與其餘 P2 看到不碰；pack schema 不動。每案一顆 commit。
+- P0-1（`40d268d`）：profile 模式改走 `getContext().ConnectionManagerRequestService.sendRequest()`（1.18.0 `st-context.js:292`／`scripts/extensions/shared.js:419-487`），不再拼 `/profile-genstream` 指令字串；設定檔清單以 `getSupportedProfiles()`（`shared.js:525`）為準。舊路徑在 globalThis 找 `triggerSlash` 永遠撲空（TavernHelper 只掛 `globalThis.TavernHelper` 一個物件），8/15 出貨至今 profile 模式沒人用得到；就算接通，prompt 裡一個 `|` 就讓 SlashCommandParser 拋錯、換行變字面 `\n`。新測 12 條：五個樣本（`|` 狀態欄／多段換行＋tab／含 `"` 的對話／`{{macro}}` 字面／結尾反斜線＋Windows 路徑）逐字元原樣進 messages；無服務、API 失敗、空回應三條錯誤路徑；清單來源三條。current 模式與 `findApi` 不動（P1-3／P1-4 範圍）。
+- P0-2（`496afd0`＋工坊 `3b7465e`）：`repository.putPack` 同 id 內容不同丟 `PackConflictError`（同一筆 readwrite 交易先 get 再決定，錯誤帶兩包的 displayName／creator）、內容相同視為重新匯入、`overwrite: true` 才直接蓋；`app.importPack` 接到衝突用 confirm（建構子可注入）問一次才覆蓋，取消就保留舊包並在狀態列講明。工坊 `createPackId` 改產 `<creatorSlug>.<packSlug>`（作者空白退回純名稱；守酒館端 64 字元、作者段最多 24）。新測 loader 6 條（含兩條真的走 `<input type=file>` change 的整段）＋工坊 5 條。
+- P2-13（本 commit）：`scripts/package.mjs` 打包清單加 `LICENSE`（AGPL-3.0 §4）；版本 0.3.1→0.3.2（`manifest.json` 手改，`package.json`／`package-lock.json` 用 `npm version` 同步；README 沒有版本字串）。`npm run package` 兩次同雜湊 `f81d43c9058bf87eea2aad5ebd6a298b00f8cf2176b7ed6ae92d06567683bad1`（72,908 bytes）；用 Expand-Archive 解開實看：五檔 `LICENSE`／`README.md`／`dist/index.js`／`dist/style.css`／`manifest.json`，解出的 LICENSE SHA-256 `0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0` 與 repo 相同，zip 內 manifest 報 0.3.2。
+- 驗證：`npm test` 12 檔 62 測綠（原 44＋新 18）、`npm run build` 過、每顆 commit 的 dist 都同步重建。Mini 本機酒館 `st_status` 回 1.18.0，與對照源碼同版。
+- 沒做、要 Mini 在場：真酒館燒一次 profile 模式生成（用她的 API 額度）；建 GitHub Release v0.3.2 掛新 ZIP，然後 tavern-pet-workshop 的離線下載連結（`index.html:286`、README）從 v0.3.1 改 v0.3.2——現在公開的 v0.3.1 ZIP 裡沒有 LICENSE。

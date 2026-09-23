@@ -11,7 +11,8 @@ const outputPath = path.join(outputDirectory, `resident-loader-v${manifest.versi
 const zip = new JSZip();
 const releaseTimestamp = new Date('2026-08-14T12:00:00.000Z');
 
-for (const relativePath of ['manifest.json', 'README.md', 'dist/index.js', 'dist/style.css']) {
+// LICENSE 一定要隨 ZIP 走：AGPL-3.0 第 4 條要求散布時附上授權全文。
+for (const relativePath of ['manifest.json', 'README.md', 'LICENSE', 'dist/index.js', 'dist/style.css']) {
   zip.file(relativePath, await readFile(path.join(root, relativePath)), {
     date: releaseTimestamp,
     createFolders: false,
