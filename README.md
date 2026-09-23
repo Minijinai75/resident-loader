@@ -47,4 +47,4 @@ npm run package
 
 ## 授權
 
-Apache License 2.0（26-09-24 起）——歡迎自由使用、修改與再散布。全文見 [LICENSE](./LICENSE)。
+AGPL-3.0（26-09-24 起,與 SillyTavern 本體同授權）——歡迎自由使用、修改與再散布;改作需以同授權開源。全文見 [LICENSE](./LICENSE)。
