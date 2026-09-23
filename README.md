@@ -44,3 +44,7 @@ npm run package
 ```
 
 `dist/` 必須隨版本提交，因為 SillyTavern 的 repo 安裝流程不會在使用者端執行建置。
+
+## 授權
+
+Apache License 2.0（26-09-24 起）——歡迎自由使用、修改與再散布。全文見 [LICENSE](./LICENSE)。
